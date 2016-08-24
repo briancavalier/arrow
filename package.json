@@ -1,0 +1,59 @@
+{
+  "name": "arrow",
+  "version": "1.0.0",
+  "description": "Arrowized push-pull FRP",
+  "main": "dist/arrow.js",
+  "jsnext:main": "src/index.js",
+  "files": [
+    "src/*",
+    "dist/arrow.js"
+  ],
+  "scripts": {
+    "build:counter": "rollup -c examples/rollup.config.js -o examples/counter/app.js examples/counter/index.js",
+    "build:mouse-position": "rollup -c examples/rollup.config.js -o examples/mouse-position/app.js examples/mouse-position/index.js",
+    "build:timer": "rollup -c examples/rollup.config.js -o examples/timer/app.js examples/timer/index.js",
+    "build:dist": "rollup -c",
+    "build": "npm run build:dist && uglifyjs dist/arrow.js -o dist/arrow.min.js",
+    "prepublish": "npm run build",
+    "preversion": "npm run build",
+    "test:unit": "istanbul cover _mocha -- -r buba/register",
+    "test:typecheck": "flow",
+    "test:lint": "jsinspect src && eslint src",
+    "test": "npm run test:lint && npm run test:typecheck && npm run test:unit"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/briancavalier/arrow.git"
+  },
+  "keywords": [
+    "reactive",
+    "event"
+  ],
+  "author": "Brian Cavalier <brian@hovercraftstudios.com> (github.com/briancavalier)",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/briancavalier/arrow/issues"
+  },
+  "homepage": "https://github.com/briancavalier/arrow#readme",
+  "devDependencies": {
+    "assert": "^1.4.1",
+    "babel-eslint": "^6.1.2",
+    "buba": "^2.0.2",
+    "eslint": "^3.3.1",
+    "eslint-config-standard": "^6.0.0",
+    "eslint-plugin-flowtype": "^2.11.1",
+    "eslint-plugin-promise": "^2.0.1",
+    "eslint-plugin-standard": "^2.0.0",
+    "flow-bin": "^0.30.0",
+    "istanbul": "^1.1.0-alpha.1",
+    "jsinspect": "^0.8.0",
+    "mocha": "^3.0.2",
+    "rollup": "^0.34.9",
+    "rollup-plugin-buble": "^0.12.1",
+    "rollup-plugin-commonjs": "^3.3.1",
+    "rollup-plugin-flow": "^1.0.1",
+    "rollup-plugin-node-resolve": "^2.0.0",
+    "snabbdom": "^0.5.1",
+    "uglify-js": "^2.7.1"
+  }
+}
