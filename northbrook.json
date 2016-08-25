@@ -1,0 +1,7 @@
+{
+  "packages": ["."],
+  "plugins": ["eslint"],
+  "eslint": {
+    "formatter": "table"
+  }
+}

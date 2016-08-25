@@ -18,8 +18,10 @@
     "preversion": "npm run build",
     "test:unit": "istanbul cover _mocha -- -r buba/register",
     "test:typecheck": "flow",
-    "test:lint": "jsinspect src && eslint src",
-    "test": "npm run test:lint && npm run test:typecheck && npm run test:unit"
+    "test:lint": "jsinspect src && nb eslint",
+    "test": "npm run test:lint && npm run test:typecheck && npm run test:unit",
+    "commit": "nb commit",
+    "release": "nb release"
   },
   "repository": {
     "type": "git",
@@ -48,6 +50,8 @@
     "istanbul": "^1.1.0-alpha.1",
     "jsinspect": "^0.8.0",
     "mocha": "^3.0.2",
+    "northbrook": "^2.0.19",
+    "northbrook-eslint": "^1.1.0",
     "rollup": "^0.34.9",
     "rollup-plugin-buble": "^0.12.1",
     "rollup-plugin-commonjs": "^3.3.1",
