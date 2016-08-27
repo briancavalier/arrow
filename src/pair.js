@@ -9,3 +9,7 @@ export function dup <A> (a: A): [A, A] {
 export function swap <A, B> ([a, b]: [A, B]): [B, A] {
   return [b, a]
 }
+
+export function uncurry <A, B, C> (f: (a: A, b: B) => C): (ab: [A, B]) => C {
+  return ([a, b]) => f(a, b)
+}

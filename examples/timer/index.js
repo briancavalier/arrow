@@ -1,4 +1,4 @@
-import { lift, pipe, always, unsplit, accum, scanl, both, bothI, run, clockSession } from '../../src/index'
+import { lift, pipe, always, merge, accum, scanl, both, bothI, run, clockSession } from '../../src/index'
 import { click } from '../../src/dom'
 import snabbdom from 'snabbdom'
 import h from 'snabbdom/h'
@@ -17,9 +17,8 @@ const render = (count) =>
 
 const inc = always((a) => a + 1)
 const reset = always(() => 0)
-const keep = unsplit((a, b) => a || b)
 
 const inputs = bothI(timer(1000), click(container.parentElement))
-const counter = pipe(both(inc, reset), keep, accum(0), lift(render), scanl(patch, patch(container, render(0))))
+const counter = pipe(both(inc, reset), merge(), accum(0), lift(render), scanl(patch, patch(container, render(0))))
 
 run(counter, inputs, clockSession(), x => console.log(x))

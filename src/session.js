@@ -1,4 +1,7 @@
 // @flow
+
+// A session provides a sample of state that will be fed into
+// the system when events occur
 export type Session<A> = {
   step: () => SessionStep<A>
 }

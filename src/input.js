@@ -1,17 +1,12 @@
 // @flow
-
-// An event, which has a value when it occurs, and
-// has no value when it doesn't occur
-export type Evt<A> = ?A
-
-// Non-occurrence
-export const NoEvent = undefined
+import type { Evt } from './event'
+import { NoEvent } from './event'
 
 // Dispose an Input
 export type DisposeInput = () => any
 
 // Handle input events
-export type HandleInput<A> = (a: Evt<A>) => any
+export type HandleInput<A> = (a: A) => any
 
 // An Input allows events to be pushed into the system
 // It's basically any unary higher order function

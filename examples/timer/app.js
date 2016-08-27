@@ -8,33 +8,30 @@ function dup     (a   )         {
   return [a, a]
 }
 
+function uncurry           (f                   )                    {
+  return function (ref) {
+    var a = ref[0];
+    var b = ref[1];
+
+    return f(a, b);
+  }
+}
+
 //      
 
 // An event, which has a value when it occurs, and
 // has no value when it doesn't occur
-                       
+                             
 
 // Non-occurrence
 var NoEvent = undefined
 
-// Dispose an Input
-                                    
-
-// Handle input events
-                                               
-
-// An Input allows events to be pushed into the system
-// It's basically any unary higher order function
-                                                                
-
-// Turn a pair of inputs into an input of pairs
-function both$1       (input1          , input2          )                          {
-  return function (f) {
-    var dispose1 = input1(function (a1) { return f([a1, NoEvent]); })
-    var dispose2 = input2(function (a2) { return f([NoEvent, a2]); })
-    return function () { return [dispose1(), dispose2()]; }
-  }
+// Return the Event that occurred, preferring a1 if both occurred
+function merge$1     (a1        , a2        )         {
+  return a1 === undefined ? a2 : a1
 }
+
+var identity = function (a) { return a; }
 
 // An Event is either a value or NoEvent, indicating that
 // the Event did not occur
@@ -58,12 +55,17 @@ var noEvent = function (next) { return step(NoEvent, next); }
 // Lift a function into a Reactive transform
 var lift = function (f) { return new Lift(f); }
 
-var unsplit = function (f) { return lift(function (ref) {
-  var a = ref[0];
-  var b = ref[1];
+// id :: Reactive t a a
+// Reactive transformation that yields its input at each step
+var id = lift(identity)
 
-  return f(a, b);
-  }); }
+// unsplit :: (a -> b -> c) -> Reactive t [a, b] c
+var unsplit = function (f) { return lift(uncurry(f)); }
+
+// merge :: () -> Reactive t (Event a, Event a) (Event a)
+// Merge events, preferring the left in the case of
+// simultaneous occurrence
+var merge = function () { return unsplit(merge$1); }
 
 // always :: a -> Reactive t a a
 // Reactive transformation that turns everything into a
@@ -73,7 +75,7 @@ var Lift = function Lift (f) {
   this.f = f
 };
 
-Lift.prototype.step = function step$2 (t, a) {
+Lift.prototype.step = function step$1 (t, a) {
   return a === NoEvent
     ? noEvent(this)
     : step(this.f(a), this)
@@ -89,7 +91,7 @@ var Unfirst = function Unfirst (arrow, c) {
   this.value = c
 };
 
-Unfirst.prototype.step = function step$6 (t, a) {
+Unfirst.prototype.step = function step$5 (t, a) {
   return a === NoEvent
     ? noEvent(this)
     : stepUnfirst(this.arrow, t, a, this.value)
@@ -137,7 +139,7 @@ var Pipe = function Pipe (ab, bc) {
   this.bc = bc
 };
 
-Pipe.prototype.step = function step$7 (t, a) {
+Pipe.prototype.step = function step$6 (t, a) {
   var ref = this.ab.step(t, a);
     var b = ref.value;
     var ab = ref.next;
@@ -157,8 +159,7 @@ var Both = function Both (ab, cd) {
   this.cd = cd
 };
 
-Both.prototype.step = function step$9 (t, ac) {
-  console.log('BOTH', ac)
+Both.prototype.step = function step$7 (t, ac) {
   return ac === NoEvent
     ? stepBoth(this.ab, this.cd, t, NoEvent, NoEvent)
     : stepBoth(this.ab, this.cd, t, ac[0], ac[1])
@@ -175,7 +176,29 @@ var stepBoth = function (ab, cd, t, a, c) {
 }
 
 //      
-                                                       
+                                  
+// Dispose an Input
+                                    
+
+// Handle input events
+                                          
+
+// An Input allows events to be pushed into the system
+// It's basically any unary higher order function
+                                                                
+
+// Turn a pair of inputs into an input of pairs
+function both$1       (input1          , input2          )                          {
+  return function (f) {
+    var dispose1 = input1(function (a1) { return f([a1, NoEvent]); })
+    var dispose2 = input2(function (a2) { return f([NoEvent, a2]); })
+    return function () { return [dispose1(), dispose2()]; }
+  }
+}
+
+//      
+                                                  
+                                 
                                         
 
                                  
@@ -209,6 +232,9 @@ function run           (
 }
 
 //      
+
+// A session provides a sample of state that will be fed into
+// the system when events occur
                           
                             
  
@@ -236,9 +262,10 @@ ClockSession.prototype.step = function step ()                    {
 //      
                                     
 
-/* global Element, Event */
+/* global EventTarget, Event */
 
-                                                                        
+                                                                            
+
 var domInput           = function (name) { return function (node) { return function (f) {
   node.addEventListener(name, f, false)
   return function () { return node.removeEventListener(name, f, false); }
@@ -684,10 +711,9 @@ var render = function (count) { return h$1('button', ("Seconds passed: " + count
 
 var inc = always(function (a) { return a + 1; })
 var reset = always(function () { return 0; })
-var keep = unsplit(function (a, b) { return a || b; })
 
 var inputs = both$1(timer(1000), click(container.parentElement))
-var counter = pipe(both(inc, reset), keep, accum(0), lift(render), scanl(patch, patch(container, render(0))))
+var counter = pipe(both(inc, reset), merge(), accum(0), lift(render), scanl(patch, patch(container, render(0))))
 
 run(counter, inputs, clockSession(), function (x) { return console.log(x); })
 

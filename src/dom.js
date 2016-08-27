@@ -1,9 +1,10 @@
 // @flow
 import type { Input } from './input'
 
-/* global Element, Event */
+/* global EventTarget, Event */
 
-export type DomInput = (name: string) => (node: Element) => Input<Event>
+export type DomInput = (name: string) => (node: EventTarget) => Input<Event>
+
 export const domInput: DomInput = (name) => (node) => (f) => {
   node.addEventListener(name, f, false)
   return () => node.removeEventListener(name, f, false)

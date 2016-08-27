@@ -1,5 +1,8 @@
 {
   "extends": "eslint-config-standard",
   "parser": "babel-eslint",
-  "plugins": ["flowtype"]
+  "plugins": ["flowtype", "import"],
+  "rules": {
+    "no-duplicate-imports": 0
+  }
 }

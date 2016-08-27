@@ -12,10 +12,12 @@ function dup     (a   )         {
 
 // An event, which has a value when it occurs, and
 // has no value when it doesn't occur
-                       
+                             
 
 // Non-occurrence
 var NoEvent = undefined
+
+var identity = function (a) { return a; }
 
 // An Event is either a value or NoEvent, indicating that
 // the Event did not occur
@@ -41,26 +43,32 @@ var lift = function (f) { return new Lift(f); }
 
 // always :: a -> Reactive t a a
 // Reactive transformation that turns everything into a
+// TODO: Give this its own type so it can be composed efficiently
 var always = function (a) { return lift(function () { return a; }); }
 
 var Lift = function Lift (f) {
   this.f = f
 };
 
-Lift.prototype.step = function step$2 (t, a) {
+Lift.prototype.step = function step$1 (t, a) {
   return a === NoEvent
     ? noEvent(this)
     : step(this.f(a), this)
 };
 
-var or = function (left, right) { return new Choice(left, right); }
+// id :: Reactive t a a
+// Reactive transformation that yields its input at each step
+// TODO: Give this its own type so it can be composed efficiently
+var id = lift(identity)
 
-var Choice = function Choice (left, right) {
+var or = function (left, right) { return new Or(left, right); }
+
+var Or = function Or (left, right) {
   this.left = left
   this.right = right
 };
 
-Choice.prototype.step = function step$3 (t, a) {
+Or.prototype.step = function step$2 (t, a) {
   var ref = this.left.step(t, a);
     var bl = ref.value;
     var nl = ref.next;
@@ -82,7 +90,7 @@ var Unfirst = function Unfirst (arrow, c) {
   this.value = c
 };
 
-Unfirst.prototype.step = function step$6 (t, a) {
+Unfirst.prototype.step = function step$5 (t, a) {
   return a === NoEvent
     ? noEvent(this)
     : stepUnfirst(this.arrow, t, a, this.value)
@@ -130,7 +138,7 @@ var Pipe = function Pipe (ab, bc) {
   this.bc = bc
 };
 
-Pipe.prototype.step = function step$7 (t, a) {
+Pipe.prototype.step = function step$6 (t, a) {
   var ref = this.ab.step(t, a);
     var b = ref.value;
     var ab = ref.next;
@@ -140,8 +148,11 @@ Pipe.prototype.step = function step$7 (t, a) {
   return step(c, pipe(ab, bc))
 };
 
+//
+
 //      
-                                                       
+                                                  
+                                 
                                         
 
                                  
@@ -175,6 +186,9 @@ function run           (
 }
 
 //      
+
+// A session provides a sample of state that will be fed into
+// the system when events occur
                           
                             
  
@@ -202,9 +216,10 @@ ClockSession.prototype.step = function step ()                    {
 //      
                                     
 
-/* global Element, Event */
+/* global EventTarget, Event */
 
-                                                                        
+                                                                            
+
 var domInput           = function (name) { return function (node) { return function (f) {
   node.addEventListener(name, f, false)
   return function () { return node.removeEventListener(name, f, false); }

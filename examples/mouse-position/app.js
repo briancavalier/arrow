@@ -5,28 +5,14 @@
 
 // An event, which has a value when it occurs, and
 // has no value when it doesn't occur
-                       
+                             
 
 // Non-occurrence
 var NoEvent = undefined
 
-// Dispose an Input
-                                    
-
-// Handle input events
-                                               
-
-// An Input allows events to be pushed into the system
-// It's basically any unary higher order function
-                                                                
-
-// Turn a pair of inputs into an input of pairs
-function both$1       (input1          , input2          )                          {
-  return function (f) {
-    var dispose1 = input1(function (a1) { return f([a1, NoEvent]); })
-    var dispose2 = input2(function (a2) { return f([NoEvent, a2]); })
-    return function () { return [dispose1(), dispose2()]; }
-  }
+// Return the Event that occurred, preferring a1 if both occurred
+function merge$1     (a1        , a2        )         {
+  return a1 === undefined ? a2 : a1
 }
 
 // An Event is either a value or NoEvent, indicating that
@@ -107,7 +93,6 @@ var Both = function Both (ab, cd) {
 };
 
 Both.prototype.step = function step$9 (t, ac) {
-  console.log('BOTH', ac)
   return ac === NoEvent
     ? stepBoth(this.ab, this.cd, t, NoEvent, NoEvent)
     : stepBoth(this.ab, this.cd, t, ac[0], ac[1])
@@ -123,25 +108,47 @@ var stepBoth = function (ab, cd, t, a, c) {
   return step([b, d], both(anext, cnext))
 }
 
-var hold = function (ab, b) { return new Hold(ab, b); }
+// hold :: a -> Reactive t (Event a) a
+// Turn an event into a stepped value
+var hold = function (initial) { return new Hold(initial); }
 
-var Hold = function Hold (ab, b) {
-  this.ab = ab
-  this.b = b
+var Hold = function Hold (value) {
+  this.value = value
 };
 
 Hold.prototype.step = function step$10 (t, a) {
-  if (a === NoEvent) {
-    return step(this.b, this)
-  }
-  var ref = this.ab.step(t, a);
-    var b = ref.value;
-    var next = ref.next;
-  return step(b, hold(next, b))
+  return stepHold(merge$1(a, this.value))
+  // return a === E.NoEvent
+  // ? step(this.value, this)
+  // : step(a, hold(a));
 };
 
+var stepHold = function (a) { return step(a, hold(a)); }
+
 //      
-                                                       
+                                  
+// Dispose an Input
+                                    
+
+// Handle input events
+                                          
+
+// An Input allows events to be pushed into the system
+// It's basically any unary higher order function
+                                                                
+
+// Turn a pair of inputs into an input of pairs
+function both$1       (input1          , input2          )                          {
+  return function (f) {
+    var dispose1 = input1(function (a1) { return f([a1, NoEvent]); })
+    var dispose2 = input2(function (a2) { return f([NoEvent, a2]); })
+    return function () { return [dispose1(), dispose2()]; }
+  }
+}
+
+//      
+                                                  
+                                 
                                         
 
                                  
@@ -175,6 +182,9 @@ function run           (
 }
 
 //      
+
+// A session provides a sample of state that will be fed into
+// the system when events occur
                           
                             
  
@@ -202,9 +212,10 @@ ClockSession.prototype.step = function step ()                    {
 //      
                                     
 
-/* global Element, Event */
+/* global EventTarget, Event */
 
-                                                                        
+                                                                            
+
 var domInput           = function (name) { return function (node) { return function (f) {
   node.addEventListener(name, f, false)
   return function () { return node.removeEventListener(name, f, false); }
@@ -213,11 +224,12 @@ var domInput           = function (name) { return function (node) { return funct
 var mousemove = domInput('mousemove')
 var keydown = domInput('keydown')
 
+//      
 var join = function (sep) { return function (a, b) { return a + sep + b; }; }
 var render = function (s) { return document.body.innerHTML = s; }
 
-var coords = hold(lift(function (e) { return ((e.clientX) + "," + (e.clientY)); }), '-,-')
-var keyCode = hold(lift(function (e) { return e.keyCode; }), '-')
+var coords = pipe(lift(function (e) { return ((e.clientX) + "," + (e.clientY)); }), hold('-,-'))
+var keyCode = pipe(lift(function (e) { return e.keyCode; }), hold('-'))
 
 var s = pipe(both(coords, keyCode), unsplit(join(':')))
 var inputs = both$1(mousemove(document), keydown(document))
