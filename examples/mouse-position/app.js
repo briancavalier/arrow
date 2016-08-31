@@ -44,8 +44,7 @@ function hold        (ab                           , initial   )                
     var eb = ref[0];
     var b = ref[1];
 
-    console.log('hold', eb, b)
-    return eb === undefined ? [b, b] : [eb, eb]
+    return eb === undefined ? [b, b] : [eb, eb];
   })), initial)
 }
 
@@ -95,19 +94,15 @@ var First = function First (ab) {
   this.ab = ab
 };
 
-First.prototype.step = function step$2 (t, a) {
-  return a === NoEvent ? NoEvent : stepFirst(this.ab, t, a)
-};
+First.prototype.step = function step$2 (t, ref) {
+    var a = ref[0];
+    var c = ref[1];
 
-var stepFirst = function (ab, t, ref) {
-  var a = ref[0];
-  var c = ref[1];
-
-  var ref$1 = ab.step(t, a);
-  var b = ref$1.value;
-  var next = ref$1.next;
+  var ref$1 = this.ab.step(t, a);
+    var b = ref$1.value;
+    var next = ref$1.next;
   return step([b, c], first(next))
-}
+};
 
 // unfirst  :: c -> Reactive [a, c] [b, c] -> Reactive a b
 // unsecond :: c -> Reactive [c, a] [c, b] -> Reactive a b
@@ -166,21 +161,18 @@ var Both = function Both (ab, cd) {
   this.cd = cd
 };
 
-Both.prototype.step = function step$5 (t, ac) {
-  return ac === NoEvent
-    ? stepBoth(this.ab, this.cd, t, NoEvent, NoEvent)
-    : stepBoth(this.ab, this.cd, t, ac[0], ac[1])
-};
+Both.prototype.step = function step$5 (t, ref) {
+    var a = ref[0];
+    var c = ref[1];
 
-var stepBoth = function (ab, cd, t, a, c) {
-  var ref = ab.step(t, a);
-  var b = ref.value;
-  var anext = ref.next;
-  var ref$1 = cd.step(t, c);
-  var d = ref$1.value;
-  var cnext = ref$1.next;
+  var ref$1 = this.ab.step(t, a);
+    var b = ref$1.value;
+    var anext = ref$1.next;
+  var ref$2 = this.cd.step(t, c);
+    var d = ref$2.value;
+    var cnext = ref$2.next;
   return step([b, d], both(anext, cnext))
-}
+};
 
 //      
                                   
@@ -205,7 +197,7 @@ function both$1       (input1          , input2          )                      
 
 //      
                                                   
-                                 
+                                  
                                         
 
                                  

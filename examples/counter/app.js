@@ -97,8 +97,6 @@ var identity = function (a) { return a; }
 // Simple helper to construct a Step
 var step = function (value, next) { return ({ value: value, next: next }); }
 
-var noEvent = function (next) { return step(NoEvent, next); }
-
 // lift :: (a -> b) -> Reactive t a b
 // Lift a function into a Reactive transform
 var lift = function (f) { return new Lift(f); }
@@ -135,19 +133,13 @@ var Unfirst = function Unfirst (arrow, c) {
 };
 
 Unfirst.prototype.step = function step$3 (t, a) {
-  return a === NoEvent
-    ? noEvent(this)
-    : stepUnfirst(this.arrow, t, a, this.value)
+  var ref = this.arrow.step(t, [a, this.value]);
+    var ref_value = ref.value;
+    var b = ref_value[0];
+    var c = ref_value[1];
+    var next = ref.next;
+  return step(b, unfirst(next, c))
 };
-
-var stepUnfirst = function (arrow, t, a, c1) {
-  var ref = arrow.step(t, [a, c1]);
-  var ref_value = ref.value;
-  var b = ref_value[0];
-  var c2 = ref_value[1];
-  var next = ref.next;
-  return step(b, unfirst(next, c2))
-}
 
 // pipe :: (Reactive t a b ... Reactive t y z) -> Reactive t a z
 // Compose many Reactive transformations, left to right
@@ -193,27 +185,24 @@ var Both = function Both (ab, cd) {
   this.cd = cd
 };
 
-Both.prototype.step = function step$5 (t, ac) {
-  return ac === NoEvent
-    ? stepBoth(this.ab, this.cd, t, NoEvent, NoEvent)
-    : stepBoth(this.ab, this.cd, t, ac[0], ac[1])
-};
+Both.prototype.step = function step$5 (t, ref) {
+    var a = ref[0];
+    var c = ref[1];
 
-var stepBoth = function (ab, cd, t, a, c) {
-  var ref = ab.step(t, a);
-  var b = ref.value;
-  var anext = ref.next;
-  var ref$1 = cd.step(t, c);
-  var d = ref$1.value;
-  var cnext = ref$1.next;
+  var ref$1 = this.ab.step(t, a);
+    var b = ref$1.value;
+    var anext = ref$1.next;
+  var ref$2 = this.cd.step(t, c);
+    var d = ref$2.value;
+    var cnext = ref$2.next;
   return step([b, d], both(anext, cnext))
-}
+};
 
 //
 
 //      
                                                   
-                                 
+                                  
                                         
 
                                  

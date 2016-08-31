@@ -57,14 +57,10 @@ class First {
     this.ab = ab
   }
 
-  step (t, a) {
-    return a === E.NoEvent ? E.NoEvent : stepFirst(this.ab, t, a)
+  step (t, [a, c]) {
+    const { value: b, next } = this.ab.step(t, a)
+    return step([b, c], first(next))
   }
-}
-
-const stepFirst = (ab, t, [a, c]) => {
-  const { value: b, next } = ab.step(t, a)
-  return step([b, c], first(next))
 }
 
 // unfirst  :: c -> Reactive [a, c] [b, c] -> Reactive a b
@@ -127,16 +123,9 @@ class Both {
     this.cd = cd
   }
 
-  step (t, ac) {
-    return ac === E.NoEvent
-      ? stepBoth(this.ab, this.cd, t, E.NoEvent, E.NoEvent)
-      : stepBoth(this.ab, this.cd, t, ac[0], ac[1])
+  step (t, [a, c]) {
+    const { value: b, next: anext } = this.ab.step(t, a)
+    const { value: d, next: cnext } = this.cd.step(t, c)
+    return step([b, d], both(anext, cnext))
   }
 }
-
-const stepBoth = (ab, cd, t, a, c) => {
-  const { value: b, next: anext } = ab.step(t, a)
-  const { value: d, next: cnext } = cd.step(t, c)
-  return step([b, d], both(anext, cnext))
-}
-

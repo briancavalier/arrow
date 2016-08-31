@@ -175,21 +175,18 @@ var Both = function Both (ab, cd) {
   this.cd = cd
 };
 
-Both.prototype.step = function step$5 (t, ac) {
-  return ac === NoEvent
-    ? stepBoth(this.ab, this.cd, t, NoEvent, NoEvent)
-    : stepBoth(this.ab, this.cd, t, ac[0], ac[1])
-};
+Both.prototype.step = function step$5 (t, ref) {
+    var a = ref[0];
+    var c = ref[1];
 
-var stepBoth = function (ab, cd, t, a, c) {
-  var ref = ab.step(t, a);
-  var b = ref.value;
-  var anext = ref.next;
-  var ref$1 = cd.step(t, c);
-  var d = ref$1.value;
-  var cnext = ref$1.next;
+  var ref$1 = this.ab.step(t, a);
+    var b = ref$1.value;
+    var anext = ref$1.next;
+  var ref$2 = this.cd.step(t, c);
+    var d = ref$2.value;
+    var cnext = ref$2.next;
   return step([b, d], both(anext, cnext))
-}
+};
 
 //      
                                   
@@ -214,7 +211,7 @@ function both$1       (input1          , input2          )                      
 
 //      
                                                   
-                                 
+                                  
                                         
 
                                  
