@@ -1,7 +1,10 @@
 [ignore]
 .*/\.git/.*
 .*/coverage/.*
-.*/node_modules/.*
+.*/node_modules/findup/.*
+.*/node_modules/flow-remove-types/.*
+.*/node_modules/khaos/.*
+.*/node_modules/rollup-plugin-flow/.*
 
 [include]
 src/

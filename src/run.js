@@ -1,6 +1,6 @@
 // @flow
 import type { Input, DisposeInput } from './input'
-import type { Evt} from './event'
+import type { Evt } from './event'
 import type { Session } from './session'
 
 export type Reactive<T, A, B> = {

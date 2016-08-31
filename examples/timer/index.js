@@ -1,4 +1,4 @@
-import { lift, pipe, always, merge, accum, scanl, both, bothI, run, clockSession } from '../../src/index'
+import { lift, pipe, as, merge, accum, scanl, both, bothI, run, clockSession } from '../../src/index'
 import { click } from '../../src/dom'
 import snabbdom from 'snabbdom'
 import h from 'snabbdom/h'
@@ -15,8 +15,8 @@ const patch = snabbdom.init([])
 const render = (count) =>
   h('button', `Seconds passed: ${count}`)
 
-const inc = always((a) => a + 1)
-const reset = always(() => 0)
+const inc = as((a) => a + 1)
+const reset = as(() => 0)
 
 const inputs = bothI(timer(1000), click(container.parentElement))
 const counter = pipe(both(inc, reset), merge(), accum(0), lift(render), scanl(patch, patch(container, render(0))))

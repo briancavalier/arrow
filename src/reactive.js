@@ -19,19 +19,12 @@ const identity = a => a
 // Simple helper to construct a Step
 const step = (value, next) => ({ value, next })
 
-const noEvent = (next) => step(E.NoEvent, next)
-
 // lift :: (a -> b) -> Reactive t a b
 // Lift a function into a Reactive transform
 export const lift = f => new Lift(f)
 
 // unsplit :: (a -> b -> c) -> Reactive t [a, b] c
 export const unsplit = (f) => lift(uncurry(f))
-
-// merge :: () -> Reactive t (Event a, Event a) (Event a)
-// Merge events, preferring the left in the case of
-// simultaneous occurrence
-export const merge = () => unsplit(E.merge)
 
 // always :: a -> Reactive t a a
 // Reactive transformation that turns everything into a
@@ -44,9 +37,7 @@ class Lift {
   }
 
   step (t, a) {
-    return a === E.NoEvent
-      ? noEvent(this)
-      : step(this.f(a), this)
+    return step(this.f(a), this)
   }
 }
 
@@ -55,58 +46,24 @@ class Lift {
 // TODO: Give this its own type so it can be composed efficiently
 export const id = lift(identity)
 
-export const or = (left, right) => new Or(left, right)
-
-class Or {
-  constructor (left, right) {
-    this.left = left
-    this.right = right
-  }
-
-  step (t, a) {
-    const { value: bl, next: nl } = this.left.step(t, a)
-    const { value: br, next: nr } = this.right.step(t, a)
-    return step(bl !== E.NoEvent ? bl : br, or(nl, nr))
-  }
-}
-
-export const filter = (p) => lift(a => p(a) ? a : E.NoEvent)
-
-// when :: Reactive t a boolean -> Reactive t a a
-// Reactive transformation that yields its input when
-// a predicate Reactive transform is true, and NoEvent
-// when false
-export const when = (p) => new When(p)
-
-class When {
-  constructor (p) {
-    this.p = p
-  }
-
-  step (t, a) {
-    const { value, next } = this.p.step(t, a)
-    return step(value ? a : E.NoEvent, when(next))
-  }
-}
-
 // first  :: Reactive t a b -> Reactive t [a, c] [b, c]
 // second :: Reactive t a b -> Reactive t [c, a] [c, b]
 // Apply a Reactive transform to the first element of a pair
-export const first = (arrow) => new First(arrow)
-export const second = (arrow) => first(dimap(swap, swap, arrow))
+export const first = (ab) => new First(ab)
+export const second = (ab) => first(dimap(swap, swap, ab))
 
 class First {
-  constructor (arrow) {
-    this.arrow = arrow
+  constructor (ab) {
+    this.ab = ab
   }
 
   step (t, a) {
-    return a === E.NoEvent ? E.NoEvent : stepFirst(this.arrow, t, a)
+    return a === E.NoEvent ? E.NoEvent : stepFirst(this.ab, t, a)
   }
 }
 
-const stepFirst = (arrow, t, [a, c]) => {
-  const { value: b, next } = arrow.step(t, a)
+const stepFirst = (ab, t, [a, c]) => {
+  const { value: b, next } = ab.step(t, a)
   return step([b, c], first(next))
 }
 
@@ -124,21 +81,10 @@ class Unfirst {
   }
 
   step (t, a) {
-    return a === E.NoEvent
-      ? noEvent(this)
-      : stepUnfirst(this.arrow, t, a, this.value)
+    const { value: [b, c], next } = this.arrow.step(t, [a, this.value])
+    return step(b, unfirst(next, c))
   }
 }
-
-const stepUnfirst = (arrow, t, a, c1) => {
-  const { value: [b, c2], next } = arrow.step(t, [a, c1])
-  return step(b, unfirst(next, c2))
-}
-
-export const accum = (a) => unfirst(lift(stepAccum), a)
-const stepAccum = ([f, a]) => dup(f(a))
-
-export const scanl = (f, b) => unfirst(lift(([a, b]) => dup(f(b, a))), b)
 
 // pipe :: (Reactive t a b ... Reactive t y z) -> Reactive t a z
 // Compose many Reactive transformations, left to right
@@ -194,18 +140,3 @@ const stepBoth = (ab, cd, t, a, c) => {
   return step([b, d], both(anext, cnext))
 }
 
-// hold :: a -> Reactive t (Event a) a
-// Turn an event into a stepped value
-export const hold = (initial) => new Hold(initial)
-
-export class Hold {
-  constructor (value) {
-    this.value = value
-  }
-
-  step (t, a) {
-    return stepHold(E.merge(a, this.value))
-  }
-}
-
-const stepHold = (a) => step(a, hold(a))

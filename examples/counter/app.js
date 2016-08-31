@@ -8,14 +8,76 @@ function dup     (a   )         {
   return [a, a]
 }
 
-//      
+function uncurry           (f                   )                    {
+  return function (ref) {
+    var a = ref[0];
+    var b = ref[1];
 
+    return f(a, b);
+  }
+}
+
+//      
 // An event, which has a value when it occurs, and
 // has no value when it doesn't occur
                              
 
+                  
+                        
+                                             
+ 
+
+                           
+           
+                       
+ 
+
+                                             
+
 // Non-occurrence
 var NoEvent = undefined
+// Turn Events of A instead Events of B
+function map        (f             )                        {
+  return function (a) { return a === undefined ? a : f(a); }
+}
+
+// Return the Event that occurred, preferring a1 if both occurred
+function mergeE     (a1        , a2        )         {
+  return a1 === undefined ? a2 : a1
+}
+
+function sampleR        ()                                 {
+  return lift(function (ref) {
+    var a = ref[0];
+    var b = ref[1];
+
+    return a === undefined ? NoEvent : b;
+  })
+}
+
+// Merge events, preferring the left in the case of
+// simultaneous occurrence
+function merge     ()                                      {
+  return unsplit(mergeE)
+}
+
+function or        (left              , right              )               {
+  return pipe(split(left, right), merge())
+}
+
+function filter     (p                   )               {
+  return lift(map(function (a) { return p(a) ? a : NoEvent; }))
+}
+
+// Accumulate via scan
+function scanl        (f                   , initial   )                            {
+  return unfirst(lift(function (ref) {
+    var a = ref[0];
+    var b = ref[1];
+
+    return dup(f(b, a));
+  }), initial)
+}
 
 var identity = function (a) { return a; }
 
@@ -41,6 +103,9 @@ var noEvent = function (next) { return step(NoEvent, next); }
 // Lift a function into a Reactive transform
 var lift = function (f) { return new Lift(f); }
 
+// unsplit :: (a -> b -> c) -> Reactive t [a, b] c
+var unsplit = function (f) { return lift(uncurry(f)); }
+
 // always :: a -> Reactive t a a
 // Reactive transformation that turns everything into a
 // TODO: Give this its own type so it can be composed efficiently
@@ -51,34 +116,13 @@ var Lift = function Lift (f) {
 };
 
 Lift.prototype.step = function step$1 (t, a) {
-  return a === NoEvent
-    ? noEvent(this)
-    : step(this.f(a), this)
+  return step(this.f(a), this)
 };
 
 // id :: Reactive t a a
 // Reactive transformation that yields its input at each step
 // TODO: Give this its own type so it can be composed efficiently
 var id = lift(identity)
-
-var or = function (left, right) { return new Or(left, right); }
-
-var Or = function Or (left, right) {
-  this.left = left
-  this.right = right
-};
-
-Or.prototype.step = function step$2 (t, a) {
-  var ref = this.left.step(t, a);
-    var bl = ref.value;
-    var nl = ref.next;
-  var ref$1 = this.right.step(t, a);
-    var br = ref$1.value;
-    var nr = ref$1.next;
-  return step(bl !== NoEvent ? bl : br, or(nl, nr))
-};
-
-var filter = function (p) { return lift(function (a) { return p(a) ? a : NoEvent; }); }
 
 // unfirst  :: c -> Reactive [a, c] [b, c] -> Reactive a b
 // unsecond :: c -> Reactive [c, a] [c, b] -> Reactive a b
@@ -90,7 +134,7 @@ var Unfirst = function Unfirst (arrow, c) {
   this.value = c
 };
 
-Unfirst.prototype.step = function step$5 (t, a) {
+Unfirst.prototype.step = function step$3 (t, a) {
   return a === NoEvent
     ? noEvent(this)
     : stepUnfirst(this.arrow, t, a, this.value)
@@ -105,21 +149,6 @@ var stepUnfirst = function (arrow, t, a, c1) {
   return step(b, unfirst(next, c2))
 }
 
-var accum = function (a) { return unfirst(lift(stepAccum), a); }
-var stepAccum = function (ref) {
-  var f = ref[0];
-  var a = ref[1];
-
-  return dup(f(a));
-}
-
-var scanl = function (f, b) { return unfirst(lift(function (ref) {
-  var a = ref[0];
-  var b = ref[1];
-
-  return dup(f(b, a));
-  }), b); }
-
 // pipe :: (Reactive t a b ... Reactive t y z) -> Reactive t a z
 // Compose many Reactive transformations, left to right
 var pipe = function (ab) {
@@ -133,12 +162,13 @@ var pipe = function (ab) {
 // Compose 2 Reactive transformations left to right
 var pipe2 = function (ab, bc) { return new Pipe(ab, bc); }
 
+var lmap = function (fab, bc) { return pipe2(lift(fab), bc); }
 var Pipe = function Pipe (ab, bc) {
   this.ab = ab
   this.bc = bc
 };
 
-Pipe.prototype.step = function step$6 (t, a) {
+Pipe.prototype.step = function step$4 (t, a) {
   var ref = this.ab.step(t, a);
     var b = ref.value;
     var ab = ref.next;
@@ -147,6 +177,37 @@ Pipe.prototype.step = function step$6 (t, a) {
     var bc = ref$1.next;
   return step(c, pipe(ab, bc))
 };
+
+// split :: Reactive t a b -> Reactive t a c -> Reactive t [b, c]
+// Duplicates input a and pass it through Reactive transformations
+// ab and ac to yield [b, c]
+var split = function (ab, ac) { return lmap(dup, both(ab, ac)); }
+
+// both :: Reactive t a b -> Reactive t c d -> Reactive [a, b] [c, d]
+// Given an [a, c] input, pass a through Reactive transformation ab and
+// c through Reactive transformation cd to yield [b, d]
+var both = function (ab, cd) { return new Both(ab, cd); }
+
+var Both = function Both (ab, cd) {
+  this.ab = ab
+  this.cd = cd
+};
+
+Both.prototype.step = function step$5 (t, ac) {
+  return ac === NoEvent
+    ? stepBoth(this.ab, this.cd, t, NoEvent, NoEvent)
+    : stepBoth(this.ab, this.cd, t, ac[0], ac[1])
+};
+
+var stepBoth = function (ab, cd, t, a, c) {
+  var ref = ab.step(t, a);
+  var b = ref.value;
+  var anext = ref.next;
+  var ref$1 = cd.step(t, c);
+  var d = ref$1.value;
+  var cnext = ref$1.next;
+  return step([b, d], both(anext, cnext))
+}
 
 //
 
@@ -652,6 +713,7 @@ module.exports = function h(sel, b, c) {
 
 var h$1 = interopDefault(h);
 
+//      
 var container = document.getElementById('app')
 
 var patch = snabbdom$1.init([])
@@ -664,10 +726,11 @@ var render = function (value) { return h$1('div#container', [
 
 var matches = function (selector) { return filter(function (e) { return e.target.matches(selector); }); }
 
-var inc = pipe(matches('.inc'), always(function (x) { return x + 1; }))
-var dec = pipe(matches('.dec'), always(function (x) { return x - 1; }))
+var add = function (a, b) { return a + b; }
+var inc = pipe(split(matches('.inc'), always(1)), sampleR())
+var dec = pipe(split(matches('.dec'), always(-1)), sampleR())
 
-var counter = pipe(or(inc, dec), accum(0))
+var counter = pipe(or(inc, dec), scanl(add, 0))
 var runCounter = pipe(counter, lift(render), scanl(patch, patch(container, render(0))))
 
 var log = function (x) { return console.log(x); }

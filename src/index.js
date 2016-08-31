@@ -6,6 +6,7 @@
 // } from './reactive'
 
 export * from './reactive'
+export * from './event'
 
 export {
   both as bothI

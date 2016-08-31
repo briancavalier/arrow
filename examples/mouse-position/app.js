@@ -1,19 +1,55 @@
 (function () {
 'use strict';
 
-//      
+function uncurry           (f                   )                    {
+  return function (ref) {
+    var a = ref[0];
+    var b = ref[1];
 
+    return f(a, b);
+  }
+}
+
+//      
 // An event, which has a value when it occurs, and
 // has no value when it doesn't occur
                              
 
+                  
+                        
+                                             
+ 
+
+                           
+           
+                       
+ 
+
+                                             
+
 // Non-occurrence
 var NoEvent = undefined
-
-// Return the Event that occurred, preferring a1 if both occurred
-function merge$1     (a1        , a2        )         {
-  return a1 === undefined ? a2 : a1
+// Turn Events of A instead Events of B
+function map        (f             )                        {
+  return function (a) { return a === undefined ? a : f(a); }
 }
+
+function mapE        (f             )                            {
+  return lift(map(f))
+}
+
+// Turn an event into a continuous (stepped) value
+function hold        (ab                           , initial   )                       {
+  return unfirst(pipe(first(ab), lift(function (ref) {
+    var eb = ref[0];
+    var b = ref[1];
+
+    console.log('hold', eb, b)
+    return eb === undefined ? [b, b] : [eb, eb]
+  })), initial)
+}
+
+var identity = function (a) { return a; }
 
 // An Event is either a value or NoEvent, indicating that
 // the Event did not occur
@@ -31,27 +67,65 @@ function merge$1     (a1        , a2        )         {
 // Simple helper to construct a Step
 var step = function (value, next) { return ({ value: value, next: next }); }
 
-var noEvent = function (next) { return step(NoEvent, next); }
-
 // lift :: (a -> b) -> Reactive t a b
 // Lift a function into a Reactive transform
 var lift = function (f) { return new Lift(f); }
 
-var unsplit = function (f) { return lift(function (ref) {
-  var a = ref[0];
-  var b = ref[1];
-
-  return f(a, b);
-  }); }
+// unsplit :: (a -> b -> c) -> Reactive t [a, b] c
+var unsplit = function (f) { return lift(uncurry(f)); }
 
 var Lift = function Lift (f) {
   this.f = f
 };
 
-Lift.prototype.step = function step$2 (t, a) {
-  return a === NoEvent
-    ? noEvent(this)
-    : step(this.f(a), this)
+Lift.prototype.step = function step$1 (t, a) {
+  return step(this.f(a), this)
+};
+
+// id :: Reactive t a a
+// Reactive transformation that yields its input at each step
+// TODO: Give this its own type so it can be composed efficiently
+var id = lift(identity)
+
+// first  :: Reactive t a b -> Reactive t [a, c] [b, c]
+// second :: Reactive t a b -> Reactive t [c, a] [c, b]
+// Apply a Reactive transform to the first element of a pair
+var first = function (ab) { return new First(ab); }
+var First = function First (ab) {
+  this.ab = ab
+};
+
+First.prototype.step = function step$2 (t, a) {
+  return a === NoEvent ? NoEvent : stepFirst(this.ab, t, a)
+};
+
+var stepFirst = function (ab, t, ref) {
+  var a = ref[0];
+  var c = ref[1];
+
+  var ref$1 = ab.step(t, a);
+  var b = ref$1.value;
+  var next = ref$1.next;
+  return step([b, c], first(next))
+}
+
+// unfirst  :: c -> Reactive [a, c] [b, c] -> Reactive a b
+// unsecond :: c -> Reactive [c, a] [c, b] -> Reactive a b
+// Tie a Reactive into a loop that feeds c back into itself
+
+var unfirst = function (arrow, c) { return new Unfirst(arrow, c); }
+var Unfirst = function Unfirst (arrow, c) {
+  this.arrow = arrow
+  this.value = c
+};
+
+Unfirst.prototype.step = function step$3 (t, a) {
+  var ref = this.arrow.step(t, [a, this.value]);
+    var ref_value = ref.value;
+    var b = ref_value[0];
+    var c = ref_value[1];
+    var next = ref.next;
+  return step(b, unfirst(next, c))
 };
 
 // pipe :: (Reactive t a b ... Reactive t y z) -> Reactive t a z
@@ -72,7 +146,7 @@ var Pipe = function Pipe (ab, bc) {
   this.bc = bc
 };
 
-Pipe.prototype.step = function step$7 (t, a) {
+Pipe.prototype.step = function step$4 (t, a) {
   var ref = this.ab.step(t, a);
     var b = ref.value;
     var ab = ref.next;
@@ -92,7 +166,7 @@ var Both = function Both (ab, cd) {
   this.cd = cd
 };
 
-Both.prototype.step = function step$9 (t, ac) {
+Both.prototype.step = function step$5 (t, ac) {
   return ac === NoEvent
     ? stepBoth(this.ab, this.cd, t, NoEvent, NoEvent)
     : stepBoth(this.ab, this.cd, t, ac[0], ac[1])
@@ -107,23 +181,6 @@ var stepBoth = function (ab, cd, t, a, c) {
   var cnext = ref$1.next;
   return step([b, d], both(anext, cnext))
 }
-
-// hold :: a -> Reactive t (Event a) a
-// Turn an event into a stepped value
-var hold = function (initial) { return new Hold(initial); }
-
-var Hold = function Hold (value) {
-  this.value = value
-};
-
-Hold.prototype.step = function step$10 (t, a) {
-  return stepHold(merge$1(a, this.value))
-  // return a === E.NoEvent
-  // ? step(this.value, this)
-  // : step(a, hold(a));
-};
-
-var stepHold = function (a) { return step(a, hold(a)); }
 
 //      
                                   
@@ -228,8 +285,8 @@ var keydown = domInput('keydown')
 var join = function (sep) { return function (a, b) { return a + sep + b; }; }
 var render = function (s) { return document.body.innerHTML = s; }
 
-var coords = pipe(lift(function (e) { return ((e.clientX) + "," + (e.clientY)); }), hold('-,-'))
-var keyCode = pipe(lift(function (e) { return e.keyCode; }), hold('-'))
+var coords = hold(mapE(function (e) { return ((e.clientX) + "," + (e.clientY)); }), '-,-')
+var keyCode = hold(mapE(function (e) { return e.keyCode; }), '-')
 
 var s = pipe(both(coords, keyCode), unsplit(join(':')))
 var inputs = both$1(mousemove(document), keydown(document))
