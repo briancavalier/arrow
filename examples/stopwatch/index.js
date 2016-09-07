@@ -1,7 +1,8 @@
-import { newInput, never, time, id, split, merge, mapE, or, both, eventTime, unsplit, pipe, scan, accum, lift, clockSession, bothI, loop } from '../../src/index'
+import { newInput, never, time, id, split, merge, mapE, or, both, eventTime, unsplit, pipe, scan, accum, clockSession, bothI, loop } from '../../src/index'
 import { animationFrames } from '../../src/dom'
 import snabbdom from 'snabbdom'
 import events from 'snabbdom/modules/eventlisteners'
+import attrs from 'snabbdom/modules/attributes'
 import clss from 'snabbdom/modules/class'
 import h from 'snabbdom/h'
 
@@ -10,19 +11,22 @@ const anyInput = (...inputs) => inputs.reduce(bothI)
 const anySignal = (...signals) => signals.reduce(or)
 
 const container = document.getElementById('app')
-const patch = snabbdom.init([events, clss])
+const patch = snabbdom.init([events, attrs, clss])
 
 const [start, startInput] = newInput()
 const [stop, stopInput] = newInput()
 const [reset, resetInput] = newInput()
 
-const render = (timer, time) =>
-  h('div.timer', { class: { running: timer.running } }, [
-    h('span', `${formatElapsed(timerElapsed(time, timer))}`),
+const render = (timer, time) => {
+  const elapsed = timerElapsed(time, timer)
+  const zero = elapsed === 0
+  return h('div.timer', { class: { running: timer.running, zero } }, [
+    h('span.elapsed', `${formatElapsed(elapsed)}`),
+    h('button.reset', { on: { click: reset }, attrs: { disabled: timer.running || zero } }, 'Reset'),
     h('button.start', { on: { click: start } }, 'Start'),
-    h('button.stop', { on: { click: stop } }, 'Stop'),
-    h('button.reset', { on: { click: reset } }, 'Reset')
+    h('button.stop', { on: { click: stop } }, 'Stop')
   ])
+}
 
 // Timer formatting
 const formatElapsed = ms =>

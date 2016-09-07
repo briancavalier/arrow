@@ -7,6 +7,42 @@
     <meta http-equiv="X-UA-Compatible" content="ie=edge">
     <title>Stopwatch</title>
     <style>
+        body {
+            font-family: "HelveticaNeue-Light", "Helvetica Neue Light", "Helvetica Neue", Helvetica, Arial, "Lucida Grande", sans-serif;
+        }
+        .timer {
+            text-align: center;
+        }
+        .timer .elapsed {
+            font-size: 5em;
+            display: block;
+        }
+        .timer button {
+            border: none;
+            background: none;
+            color: white;
+            outline: none;
+            font-size: 1em;
+            font-weight: 100;
+            width: 5em;
+            height: 5em;
+            border-radius: 2.5em;
+            padding: 0;
+            margin: 1em;
+        }
+        .timer button[disabled] {
+            opacity: .25
+        }
+        .timer .start {
+            background: #00b400;
+        }
+        .timer .stop {
+            background: red;
+        }
+        .timer .reset {
+            color: black;
+            border: 1px solid black;
+        }
         .timer .stop,
         .timer.running .start {
             display: none

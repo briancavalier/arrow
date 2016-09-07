@@ -812,6 +812,54 @@ module.exports = {create: updateEventListeners, update: updateEventListeners};
 
 var events = interopDefault(eventlisteners);
 
+var attributes = createCommonjsModule(function (module) {
+var booleanAttrs = ["allowfullscreen", "async", "autofocus", "autoplay", "checked", "compact", "controls", "declare",
+                "default", "defaultchecked", "defaultmuted", "defaultselected", "defer", "disabled", "draggable",
+                "enabled", "formnovalidate", "hidden", "indeterminate", "inert", "ismap", "itemscope", "loop", "multiple",
+                "muted", "nohref", "noresize", "noshade", "novalidate", "nowrap", "open", "pauseonexit", "readonly",
+                "required", "reversed", "scoped", "seamless", "selected", "sortable", "spellcheck", "translate",
+                "truespeed", "typemustmatch", "visible"];
+
+var booleanAttrsDict = {};
+for(var i=0, len = booleanAttrs.length; i < len; i++) {
+  booleanAttrsDict[booleanAttrs[i]] = true;
+}
+
+function updateAttrs(oldVnode, vnode) {
+  var key, cur, old, elm = vnode.elm,
+      oldAttrs = oldVnode.data.attrs, attrs = vnode.data.attrs;
+
+  if (!oldAttrs && !attrs) return;
+  oldAttrs = oldAttrs || {};
+  attrs = attrs || {};
+
+  // update modified attributes, add new attributes
+  for (key in attrs) {
+    cur = attrs[key];
+    old = oldAttrs[key];
+    if (old !== cur) {
+      // TODO: add support to namespaced attributes (setAttributeNS)
+      if(!cur && booleanAttrsDict[key])
+        elm.removeAttribute(key);
+      else
+        elm.setAttribute(key, cur);
+    }
+  }
+  //remove removed attributes
+  // use `in` operator since the previous `for` iteration uses it (.i.e. add even attributes with undefined value)
+  // the other option is to remove all attributes with value == undefined
+  for (key in oldAttrs) {
+    if (!(key in attrs)) {
+      elm.removeAttribute(key);
+    }
+  }
+}
+
+module.exports = {create: updateAttrs, update: updateAttrs};
+});
+
+var attrs = interopDefault(attributes);
+
 var _class = createCommonjsModule(function (module) {
 function updateClass(oldVnode, vnode) {
   var cur, name, elm = vnode.elm,
@@ -894,7 +942,7 @@ var anySignal = function () {
 }
 
 var container = document.getElementById('app')
-var patch = snabbdom$1.init([events, clss])
+var patch = snabbdom$1.init([events, attrs, clss])
 
 var ref = newInput();
 var start = ref[0];
@@ -906,12 +954,16 @@ var ref$2 = newInput();
 var reset = ref$2[0];
 var resetInput = ref$2[1];
 
-var render = function (timer, time) { return h$1('div.timer', { class: { running: timer.running } }, [
-    h$1('span', ("" + (formatElapsed(timerElapsed(time, timer))))),
+var render = function (timer, time) {
+  var elapsed = timerElapsed(time, timer)
+  var zero = elapsed === 0
+  return h$1('div.timer', { class: { running: timer.running, zero: zero } }, [
+    h$1('span.elapsed', ("" + (formatElapsed(elapsed)))),
+    h$1('button.reset', { on: { click: reset }, attrs: { disabled: timer.running || zero } }, 'Reset'),
     h$1('button.start', { on: { click: start } }, 'Start'),
-    h$1('button.stop', { on: { click: stop } }, 'Stop'),
-    h$1('button.reset', { on: { click: reset } }, 'Reset')
-  ]); }
+    h$1('button.stop', { on: { click: stop } }, 'Stop')
+  ])
+}
 
 // Timer formatting
 var formatElapsed = function (ms) { return ((mins(ms)) + ":" + (secs(ms)) + ":" + (hundredths(ms))); }
