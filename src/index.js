@@ -9,11 +9,11 @@ export * from './reactive'
 export * from './event'
 
 export {
-  both as bothI
+  both as bothI, never, newInput
 } from './input'
 
 export {
-  run
+  run, loop
 } from './run'
 
 export {

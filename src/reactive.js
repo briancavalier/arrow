@@ -1,7 +1,16 @@
-import { dup, swap, uncurry } from './pair'
-import * as E from './event'
+// @flow
+import { dup, uncurry } from './pair'
 
-const identity = a => a
+export type Time = number
+
+export type ReactiveT<A, B> = {
+  step: (t: Time, a: A) => ReactiveStep<A, B>
+}
+
+export type ReactiveStep<A, B> = {
+  value: B,
+  next: ReactiveT<A, B>
+}
 
 // An Event is either a value or NoEvent, indicating that
 // the Event did not occur
@@ -19,24 +28,43 @@ const identity = a => a
 // Simple helper to construct a Step
 const step = (value, next) => ({ value, next })
 
+export const time: ReactiveT<any, Time> =
+  { step: (value, _) => ({ value, next: time }) }
+
 // lift :: (a -> b) -> Reactive t a b
 // Lift a function into a Reactive transform
-export const lift = f => new Lift(f)
+export function lift <A, B> (f: (a: A) => B): ReactiveT<A, B> {
+  return new Lift(f)
+}
 
 // unsplit :: (a -> b -> c) -> Reactive t [a, b] c
-export const unsplit = (f) => lift(uncurry(f))
+export function unsplit <A, B, C> (f: (a: A, b: B) => C): ReactiveT<[A, B], C> {
+  return lift(uncurry(f))
+}
 
 // always :: a -> Reactive t a a
 // Reactive transformation that turns everything into a
 // TODO: Give this its own type so it can be composed efficiently
-export const always = (a) => lift(() => a)
+export function always <A> (a: A): ReactiveT<any, A> {
+  return lift(constant(a))
+}
 
-class Lift {
-  constructor (f) {
+function identity <A> (a: A): A {
+  return a
+}
+
+function constant <A> (a: A): (b?: any) => A {
+  return (_) => a
+}
+
+class Lift<A, B> {
+  f: (a: A) => B
+
+  constructor (f: (a: A) => B) {
     this.f = f
   }
 
-  step (t, a) {
+  step (t: Time, a: A): ReactiveStep<A, B> {
     return step(this.f(a), this)
   }
 }
@@ -44,20 +72,29 @@ class Lift {
 // id :: Reactive t a a
 // Reactive transformation that yields its input at each step
 // TODO: Give this its own type so it can be composed efficiently
-export const id = lift(identity)
+export function id <A> (): ReactiveT<A, A> {
+  return lift(identity)
+}
 
 // first  :: Reactive t a b -> Reactive t [a, c] [b, c]
 // second :: Reactive t a b -> Reactive t [c, a] [c, b]
 // Apply a Reactive transform to the first element of a pair
-export const first = (ab) => new First(ab)
-export const second = (ab) => first(dimap(swap, swap, ab))
+export function first <A, B, C> (ab: ReactiveT<A, B>): ReactiveT<[A, C], [B, C]> {
+  return new First(ab)
+}
 
-class First {
-  constructor (ab) {
+// export function second <A, B, C> (ab: ReactiveT<A, B>): ReactiveT<[C, A], [C, B]> {
+//   return first(dimap(swap, swap, ab))
+// }
+
+class First<A, B, C> {
+  ab: ReactiveT<A, B>
+
+  constructor (ab: ReactiveT<A, B>) {
     this.ab = ab
   }
 
-  step (t, [a, c]) {
+  step (t: Time, [a, c]: [A, C]): ReactiveStep<[A, C], [B, C]> {
     const { value: b, next } = this.ab.step(t, a)
     return step([b, c], first(next))
   }
@@ -66,18 +103,22 @@ class First {
 // unfirst  :: c -> Reactive [a, c] [b, c] -> Reactive a b
 // unsecond :: c -> Reactive [c, a] [c, b] -> Reactive a b
 // Tie a Reactive into a loop that feeds c back into itself
+export function unfirst <A, B, C> (ab: ReactiveT<[A, C], [B, C]>, c: C): ReactiveT<A, B> {
+  return new Unfirst(ab, c)
+}
+// export const unsecond = (arrow, c) => unfirst(dimap(swap, swap, arrow), c)
 
-export const unfirst = (arrow, c) => new Unfirst(arrow, c)
-export const unsecond = (arrow, c) => unfirst(dimap(swap, swap, arrow), c)
+class Unfirst<A, B, C> {
+  ab: ReactiveT<[A, C], [B, C]>
+  value: C
 
-class Unfirst {
-  constructor (arrow, c) {
-    this.arrow = arrow
+  constructor (ab: ReactiveT<[A, C], [B, C]>, c: C) {
+    this.ab = ab
     this.value = c
   }
 
-  step (t, a) {
-    const { value: [b, c], next } = this.arrow.step(t, [a, this.value])
+  step (t: Time, a: A): ReactiveStep<A, B> {
+    const { value: [b, c], next } = this.ab.step(t, [a, this.value])
     return step(b, unfirst(next, c))
   }
 }

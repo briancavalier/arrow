@@ -11,6 +11,7 @@
   "scripts": {
     "build:counter": "rollup -c examples/rollup.config.js -o examples/counter/app.js examples/counter/index.js",
     "build:mouse-position": "rollup -c examples/rollup.config.js -o examples/mouse-position/app.js examples/mouse-position/index.js",
+    "build:stopwatch": "rollup -c examples/rollup.config.js -o examples/stopwatch/app.js examples/stopwatch/index.js",
     "build:timer": "rollup -c examples/rollup.config.js -o examples/timer/app.js examples/timer/index.js",
     "build:dist": "rollup -c",
     "build": "npm run build:dist && uglifyjs dist/arrow.js -o dist/arrow.min.js",

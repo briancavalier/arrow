@@ -1,5 +1,6 @@
 // @flow
 import type { Input } from './input'
+import { schedule } from './input'
 
 /* global EventTarget, Event */
 
@@ -13,3 +14,5 @@ export const domInput: DomInput = (name) => (node) => (f) => {
 export const click = domInput('click')
 export const mousemove = domInput('mousemove')
 export const keydown = domInput('keydown')
+
+export const animationFrames = schedule(cancelAnimationFrame, requestAnimationFrame)

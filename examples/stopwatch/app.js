@@ -1,6 +1,17 @@
 (function () {
 'use strict';
 
+//      
+
+// Turn a single value into a pair
+function dup     (a   )         {
+  return pair(a, a)
+}
+
+function pair        (a   , b   )         {
+  return [a, b]
+}
+
 function uncurry           (f                   )                    {
   return function (ref) {
     var a = ref[0];
@@ -27,6 +38,9 @@ function uncurry           (f                   )                    {
 // Simple helper to construct a Step
 var step = function (value, next) { return ({ value: value, next: next }); }
 
+var time                       =
+  { step: function (value, _) { return ({ value: value, next: time }); } }
+
 // lift :: (a -> b) -> Reactive t a b
 // Lift a function into a Reactive transform
 function lift        (f             )                  {
@@ -38,6 +52,10 @@ function unsplit           (f                   )                       {
   return lift(uncurry(f))
 }
 
+function identity     (a   )    {
+  return a
+}
+
 var Lift = function Lift (f           ) {
   this.f = f
 };
@@ -45,6 +63,13 @@ var Lift = function Lift (f           ) {
 Lift.prototype.step = function step$1 (t    , a )                   {
   return step(this.f(a), this)
 };
+
+// id :: Reactive t a a
+// Reactive transformation that yields its input at each step
+// TODO: Give this its own type so it can be composed efficiently
+function id     ()                  {
+  return lift(identity)
+}
 
 // pipe :: (Reactive t a b ... Reactive t y z) -> Reactive t a z
 // Compose many Reactive transformations, left to right
@@ -59,6 +84,7 @@ var pipe = function (ab) {
 // Compose 2 Reactive transformations left to right
 var pipe2 = function (ab, bc) { return new Pipe(ab, bc); }
 
+var lmap = function (fab, bc) { return pipe2(lift(fab), bc); }
 var Pipe = function Pipe (ab, bc) {
   this.ab = ab
   this.bc = bc
@@ -73,6 +99,11 @@ Pipe.prototype.step = function step$4 (t, a) {
     var bc = ref$1.next;
   return step(c, pipe(ab, bc))
 };
+
+// split :: Reactive t a b -> Reactive t a c -> Reactive t [b, c]
+// Duplicates input a and pass it through Reactive transformations
+// ab and ac to yield [b, c]
+var split = function (ab, ac) { return lmap(dup, both(ab, ac)); }
 
 // both :: Reactive t a b -> Reactive t c d -> Reactive [a, b] [c, d]
 // Given an [a, c] input, pass a through Reactive transformation ab and
@@ -136,12 +167,14 @@ LiftE.prototype.step = function step (t    , a      )                           
   return { value: value, next: liftE(next) }
 };
 
-function mapE        (f             )                            {
-  return lift(map(f))
+var eventTime                                 = {
+  step: function step (t      , a     )                                    {
+    return { value: a === undefined ? NoEvent : t, next: this }
+  }
 }
 
-function as        (b   )                            {
-  return mapE(function (_) { return b; })
+function mapE        (f             )                            {
+  return lift(map(f))
 }
 
 // Merge events, preferring the left in the case of
@@ -154,9 +187,38 @@ function or        (left              , right              )               {
   return liftE(pipe(both(left, right), merge()))
 }
 
-// Accumulate event
+// Turn an event into a stepped continuous value
+function hold     (initial   )                       {
+  return new Hold(initial)
+}
+
+var Hold = function Hold (value ) {
+  this.value = value
+};
+
+Hold.prototype.step = function step (t    , a )                        {
+  if(a === undefined) {
+    return { value: this.value, next: this }
+  }
+  return { value: a, next: hold(a) }
+};
+
+// Accumulate Event carrying update functions
+function accumE     (initial   )                                      {
+  return scanE(function (b, f) { return f(b); }, initial)
+}
+
+function accum     (initial   )                                 {
+  return pipe(accumE(initial), hold(initial))
+}
+
+// Accumulate event values
 function scanE        (f                   , initial   )                            {
   return new Accum(f, initial)
+}
+
+function scan        (f                   , initial   )                       {
+  return pipe(scanE(f, initial), hold(initial))
 }
 
 var Accum = function Accum(f                 , value ) {
@@ -198,6 +260,9 @@ function both$1       (input1          , input2          )                      
   }
 }
 
+var never             = function () { return noop; }
+var noop = function () {}
+
 function newInput     ()                       {
   var _occur
   var occur = function (x) {
@@ -216,27 +281,28 @@ function newInput     ()                       {
   return [occur, input]
 }
 
-//      
-                                                  
-                                  
-                                        
-
-                                 
+                                                         
                                              
- 
 
-                                     
-           
-                         
- 
+function schedule        (cancel                   , schedule                     )           {
+  return function (f) {
+    var current
+    var onNext = function (x) {
+      current = schedule(onNext)
+      f(x)
+    }
+    current = schedule(onNext)
+    return function () { return cancel(current); }
+  }
+}
 
-function run           (
+function loop           (
   r                        ,
   input          ,
   session            ,
-  handleOutput               
+  handleOutput                   
 )               {
-  return input(function (a) {
+  var dispose = input(function (a) {
     var ref = session.step();
     var sample = ref.sample;
     var nextSession = ref.nextSession;
@@ -247,8 +313,13 @@ function run           (
     var next = ref$1.next;
     r = next
 
-    return handleOutput(value)
+    var nextInput = handleOutput(value)
+    if(nextInput != null && nextInput !== input) {
+      dispose()
+      dispose = loop(next, nextInput, nextSession, handleOutput)
+    }
   })
+  return function () { return dispose(); }
 }
 
 //      
@@ -278,6 +349,10 @@ ClockSession.prototype.step = function step ()                    {
   }
   return sessionStep(this.time, new ClockSession(this.start))
 };
+
+//      
+                                    
+var animationFrames = schedule(cancelAnimationFrame, requestAnimationFrame)
 
 function interopDefault(ex) {
 	return ex && typeof ex === 'object' && 'default' in ex ? ex['default'] : ex;
@@ -732,6 +807,34 @@ module.exports = {create: updateEventListeners, update: updateEventListeners};
 
 var events = interopDefault(eventlisteners);
 
+var _class = createCommonjsModule(function (module) {
+function updateClass(oldVnode, vnode) {
+  var cur, name, elm = vnode.elm,
+      oldClass = oldVnode.data.class,
+      klass = vnode.data.class;
+
+  if (!oldClass && !klass) return;
+  oldClass = oldClass || {};
+  klass = klass || {};
+
+  for (name in oldClass) {
+    if (!klass[name]) {
+      elm.classList.remove(name);
+    }
+  }
+  for (name in klass) {
+    cur = klass[name];
+    if (cur !== oldClass[name]) {
+      elm.classList[cur ? 'add' : 'remove'](name);
+    }
+  }
+}
+
+module.exports = {create: updateClass, update: updateClass};
+});
+
+var clss = interopDefault(_class);
+
 var h = createCommonjsModule(function (module) {
 var VNode = interopDefault(require$$1);
 var is = interopDefault(require$$0);
@@ -771,30 +874,88 @@ module.exports = function h(sel, b, c) {
 
 var h$1 = interopDefault(h);
 
-//      
-var container = document.getElementById('app')
+var log = lift(function (x) { return (console.log(x), x); })
+var anyInput = function () {
+  var inputs = [], len = arguments.length;
+  while ( len-- ) inputs[ len ] = arguments[ len ];
 
-var patch = snabbdom$1.init([events])
+  return inputs.reduce(both$1);
+}
+var anySignal = function () {
+  var signals = [], len = arguments.length;
+  while ( len-- ) signals[ len ] = arguments[ len ];
+
+  return signals.reduce(or);
+}
+
+var container = document.getElementById('app')
+var patch = snabbdom$1.init([events, clss])
 
 var ref = newInput();
-var incClick = ref[0];
-var incInput = ref[1];
+var start = ref[0];
+var startInput = ref[1];
 var ref$1 = newInput();
-var decClick = ref$1[0];
-var decInput = ref$1[1];
+var stop = ref$1[0];
+var stopInput = ref$1[1];
+var ref$2 = newInput();
+var reset = ref$2[0];
+var resetInput = ref$2[1];
 
-var render = function (value) { return h$1('div#container', [
-    h$1('button.inc', { on: { click: incClick } }, '+'),
-    h$1('p.value', value),
-    h$1('button.dec', { on: { click: decClick } }, '-')
+var render = function (timer, time) { return h$1('div.timer', { class: { running: timer.running } }, [
+    h$1('span', ("" + (formatElapsed(timerElapsed(time, timer))))),
+    h$1('button.start', { on: { click: start } }, 'Start'),
+    h$1('button.stop', { on: { click: stop } }, 'Stop'),
+    h$1('button.reset', { on: { click: reset } }, 'Reset')
   ]); }
 
-var add = function (a, b) { return a + b; }
-var counter = pipe(or(as(1), as(-1)), scanE(add, 0))
-var update = pipe(lift(render), scanE(patch, patch(container, render(0))))
-var runCounter = pipe(counter, update)
+var formatElapsed = function (ms) { return ((mins(ms)) + ":" + (secs(ms)) + ":" + (hundredths(ms))); }
 
-var log = function (x) { return console.log(x); }
-run(runCounter, both$1(incInput, decInput), clockSession(), log)
+var mins = function (ms) { return pad((ms / (1000 * 60)) % 60); }
+var secs = function (ms) { return pad((ms / 1000) % 60); }
+var hundredths = function (ms) { return pad((ms / 10) % 100); }
+var pad = function (n) { return n < 10 ? ("0" + (Math.floor(n))) : ("" + (Math.floor(n))); }
+
+var timerElapsed = function (time, ref) {
+  var running = ref.running;
+  var origin = ref.origin;
+  var total = ref.total;
+
+  return running ? (total + time - origin) : total;
+}
+var timerStart = function (time) { return function (ref) {
+  var total = ref.total;
+
+  return ({ running: true, origin: time, total: total });
+; }  }
+var timerStop = function (time) { return function (ref) {
+  var origin = ref.origin;
+  var total = ref.total;
+
+  return ({ running: false, origin: origin, total: total + (time - origin) });
+; }  }
+var timerReset = function (time) { return function (ref) {
+  var running = ref.running;
+
+  return ({ running: running, origin: time, total: 0 });
+; }  }
+var timerZero = function () { return ({ running: false, origin: 0, total: 0 }); }
+
+var doStart = pipe(eventTime, mapE(timerStart))
+var doStop = pipe(eventTime, mapE(timerStop))
+var doReset = pipe(eventTime, mapE(timerReset))
+
+var timer = pipe(anySignal(doStart, doStop, doReset), accum(timerZero()))
+
+var runTimer = both(timer, time)
+var tap = function (ab) { return pipe(split(id(), ab), merge()); }
+var displayTimer = tap(pipe(unsplit(render), scan(patch, patch(container, render(timerZero(), 0)))));
+
+var update = pipe(runTimer, displayTimer)
+
+loop(update, anyInput(startInput, stopInput, resetInput, never), clockSession(), function (ref) {
+  var running = ref[0].running;
+
+  return anyInput(startInput, stopInput, resetInput, running ? animationFrames : never)
+})
 
 }());

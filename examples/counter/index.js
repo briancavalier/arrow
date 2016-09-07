@@ -1,29 +1,28 @@
 // @flow
-import { or, sampleR, split, lift, filter, scanl, always, pipe, clockSession, run } from '../../src/index'
-import { click } from '../../src/dom'
+import { or, as, bothI, newInput, lift, scanE, pipe, clockSession, run } from '../../src/index'
 import snabbdom from 'snabbdom'
+import events from 'snabbdom/modules/eventlisteners'
 import h from 'snabbdom/h'
 
 const container = document.getElementById('app')
 
-const patch = snabbdom.init([])
+const patch = snabbdom.init([events])
+
+const [incClick, incInput] = newInput()
+const [decClick, decInput] = newInput()
 
 const render = (value) =>
   h('div#container', [
-    h('button.inc', '+'),
+    h('button.inc', { on: { click: incClick } }, '+'),
     h('p.value', value),
-    h('button.dec', '-')
+    h('button.dec', { on: { click: decClick } }, '-')
   ])
 
-const matches = (selector) => filter(e => e.target.matches(selector))
-
 const add = (a, b) => a + b
-const inc = pipe(split(matches('.inc'), always(1)), sampleR())
-const dec = pipe(split(matches('.dec'), always(-1)), sampleR())
-
-const counter = pipe(or(inc, dec), scanl(add, 0))
-const runCounter = pipe(counter, lift(render), scanl(patch, patch(container, render(0))))
+const counter = pipe(or(as(1), as(-1)), scanE(add, 0))
+const update = pipe(lift(render), scanE(patch, patch(container, render(0))))
+const runCounter = pipe(counter, update)
 
 const log = x => console.log(x)
-run(runCounter, click(document.body), clockSession(), log)
+run(runCounter, bothI(incInput, decInput), clockSession(), log)
 

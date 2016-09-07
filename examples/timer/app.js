@@ -1,13 +1,6 @@
 (function () {
 'use strict';
 
-//      
-
-// Turn a single value into a pair
-function dup     (a   )         {
-  return [a, a]
-}
-
 function uncurry           (f                   )                    {
   return function (ref) {
     var a = ref[0];
@@ -18,70 +11,6 @@ function uncurry           (f                   )                    {
 }
 
 //      
-// An event, which has a value when it occurs, and
-// has no value when it doesn't occur
-                             
-
-                  
-                        
-                                             
- 
-
-                           
-           
-                       
- 
-
-                                             
-
-// Non-occurrence
-var NoEvent = undefined
-// Turn Events of A instead Events of B
-function map        (f             )                        {
-  return function (a) { return a === undefined ? a : f(a); }
-}
-
-// Return the Event that occurred, preferring a1 if both occurred
-function mergeE     (a1        , a2        )         {
-  return a1 === undefined ? a2 : a1
-}
-
-function mapE        (f             )                            {
-  return lift(map(f))
-}
-
-function as        (b   )                            {
-  return mapE(function (_) { return b; })
-}
-
-// Merge events, preferring the left in the case of
-// simultaneous occurrence
-function merge     ()                                      {
-  return unsplit(mergeE)
-}
-
-// Accumulate Event carrying update functions
-function accum     (initial   )                                      {
-  return unfirst(lift(function (ref) {
-    var f = ref[0];
-    var a = ref[1];
-
-    return dup(f(a));
-  }), initial)
-}
-
-// Accumulate via scan
-function scanl        (f                   , initial   )                            {
-  return unfirst(lift(function (ref) {
-    var a = ref[0];
-    var b = ref[1];
-
-    return dup(f(b, a));
-  }), initial)
-}
-
-var identity = function (a) { return a; }
-
 // An Event is either a value or NoEvent, indicating that
 // the Event did not occur
 // type Event a = a | NoEvent
@@ -100,41 +29,21 @@ var step = function (value, next) { return ({ value: value, next: next }); }
 
 // lift :: (a -> b) -> Reactive t a b
 // Lift a function into a Reactive transform
-var lift = function (f) { return new Lift(f); }
+function lift        (f             )                  {
+  return new Lift(f)
+}
 
 // unsplit :: (a -> b -> c) -> Reactive t [a, b] c
-var unsplit = function (f) { return lift(uncurry(f)); }
+function unsplit           (f                   )                       {
+  return lift(uncurry(f))
+}
 
-var Lift = function Lift (f) {
+var Lift = function Lift (f           ) {
   this.f = f
 };
 
-Lift.prototype.step = function step$1 (t, a) {
+Lift.prototype.step = function step$1 (t    , a )                   {
   return step(this.f(a), this)
-};
-
-// id :: Reactive t a a
-// Reactive transformation that yields its input at each step
-// TODO: Give this its own type so it can be composed efficiently
-var id = lift(identity)
-
-// unfirst  :: c -> Reactive [a, c] [b, c] -> Reactive a b
-// unsecond :: c -> Reactive [c, a] [c, b] -> Reactive a b
-// Tie a Reactive into a loop that feeds c back into itself
-
-var unfirst = function (arrow, c) { return new Unfirst(arrow, c); }
-var Unfirst = function Unfirst (arrow, c) {
-  this.arrow = arrow
-  this.value = c
-};
-
-Unfirst.prototype.step = function step$3 (t, a) {
-  var ref = this.arrow.step(t, [a, this.value]);
-    var ref_value = ref.value;
-    var b = ref_value[0];
-    var c = ref_value[1];
-    var next = ref.next;
-  return step(b, unfirst(next, c))
 };
 
 // pipe :: (Reactive t a b ... Reactive t y z) -> Reactive t a z
@@ -189,6 +98,113 @@ Both.prototype.step = function step$5 (t, ref) {
 };
 
 //      
+                                                               
+// An event, which has a value when it occurs, and
+// has no value when it doesn't occur
+                             
+
+                                             
+
+// Non-occurrence
+var NoEvent = undefined
+
+// Turn Events of A instead Events of B
+function map        (f             )                        {
+  return function (a) { return a === undefined ? a : f(a); }
+}
+
+// Return the Event that occurred, preferring a1 if both occurred
+function mergeE     (a1        , a2        )         {
+  return a1 === undefined ? a2 : a1
+}
+
+function liftE        (ab                 )                            {
+  return new LiftE(ab)
+}
+
+var LiftE = function LiftE (ab) {
+  this.ab = ab
+};
+
+LiftE.prototype.step = function step (t    , a      )                             {
+  if(a === undefined) {
+    return { value: NoEvent, next: this }
+  }
+  var ref = this.ab.step(t, a);
+    var value = ref.value;
+    var next = ref.next;
+  return { value: value, next: liftE(next) }
+};
+
+function mapE        (f             )                            {
+  return lift(map(f))
+}
+
+function as        (b   )                            {
+  return mapE(function (_) { return b; })
+}
+
+// Merge events, preferring the left in the case of
+// simultaneous occurrence
+function merge     ()                                      {
+  return unsplit(mergeE)
+}
+
+function or        (left              , right              )               {
+  return liftE(pipe(both(left, right), merge()))
+}
+
+// Turn an event into a stepped continuous value
+function hold     (initial   )                       {
+  return new Hold(initial)
+}
+
+var Hold = function Hold (value ) {
+  this.value = value
+};
+
+Hold.prototype.step = function step (t    , a )                        {
+  if(a === undefined) {
+    return { value: this.value, next: this }
+  }
+  return { value: a, next: hold(a) }
+};
+
+// Accumulate event
+function scanE        (f                   , initial   )                            {
+  return new Accum(f, initial)
+}
+
+// Accumulate event to a continuous value
+function scan        (f                   , initial   )                       {
+  return pipe(scanE(f, initial), hold(initial))
+}
+
+// Accumulate event, given an initial value and a update-function event
+function accumE     (initial   )                                      {
+  return scanE(function (a, f) { return f(a); }, initial)
+}
+
+// Accumulate event to a continuous value, given an initial value and a update-function event
+function accum     (initial   )                                 {
+  return pipe(accumE(initial), hold(initial))
+}
+
+var Accum = function Accum(f                 , value ) {
+  this.f = f
+  this.value = value
+};
+
+Accum.prototype.step = function step (t    , a )                        {
+  if(a === undefined) {
+    return { value: NoEvent, next: this }
+  }
+  var f = this.f
+  var value = f(this.value, a)
+  return { value: value, next: new Accum(f, value) }
+};
+
+//      
                                   
 // Dispose an Input
                                     
@@ -199,6 +215,10 @@ Both.prototype.step = function step$5 (t, ref) {
 // An Input allows events to be pushed into the system
 // It's basically any unary higher order function
                                                                 
+
+                                     
+
+
 
 // Turn a pair of inputs into an input of pairs
 function both$1       (input1          , input2          )                          {
@@ -274,7 +294,6 @@ ClockSession.prototype.step = function step ()                    {
 
 //      
                                     
-
 /* global EventTarget, Event */
 
                                                                             
@@ -714,7 +733,7 @@ var h$1 = interopDefault(h);
 var container = document.getElementById('app')
 
 var timer = function (ms) { return function (f) {
-  var i = setInterval(f, ms, ms)
+  var i = setInterval(f, ms)
   return function () { return clearInterval(i); }
 }; }
 
@@ -726,7 +745,7 @@ var inc = as(function (a) { return a + 1; })
 var reset = as(function () { return 0; })
 
 var inputs = both$1(timer(1000), click(container.parentElement))
-var counter = pipe(both(inc, reset), merge(), accum(0), lift(render), scanl(patch, patch(container, render(0))))
+var counter = pipe(or(inc, reset), accum(0), lift(render), scan(patch, patch(container, render(0))))
 
 run(counter, inputs, clockSession(), function (x) { return console.log(x); })
 
