@@ -5,7 +5,7 @@ import events from 'snabbdom/modules/eventlisteners'
 import clss from 'snabbdom/modules/class'
 import h from 'snabbdom/h'
 
-const log = lift(x => (console.log(x), x))
+// TODO: combining many inputs and signals. Need a better way
 const anyInput = (...inputs) => inputs.reduce(bothI)
 const anySignal = (...signals) => signals.reduce(or)
 

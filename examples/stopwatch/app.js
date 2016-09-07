@@ -879,7 +879,7 @@ module.exports = function h(sel, b, c) {
 
 var h$1 = interopDefault(h);
 
-var log = lift(function (x) { return (console.log(x), x); })
+// TODO: combining many inputs and signals. Need a better way
 var anyInput = function () {
   var inputs = [], len = arguments.length;
   while ( len-- ) inputs[ len ] = arguments[ len ];
