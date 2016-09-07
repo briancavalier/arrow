@@ -2,6 +2,11 @@
 
 Experimenting with arrowized push-pull FRP.
 
+## Goals
+
+- Learn about Signal Functions, Signal Vectors, Arrows, and Profunctors
+- See if Signal-Function / Arrowized FRP is a viable approach to interactive apps in JavaScript
+
 ## Design goals
 
 - Implement sound FRP semantics with a pure foundation (as far as possible in JS)
@@ -13,3 +18,9 @@ Experimenting with arrowized push-pull FRP.
     - Provide a core set of operators with rigorous semantics as building blocks
 	- Assemble higher level operations by composing existing ones
 
+## References
+
+- [Edward Amsden, __Time Files: Push-Pull Signal-Function Functional Reactive Programming__](https://github.com/eamsden/pushbasedFRP/blob/master/Docs/Thesis/thesis.pdf)
+    - [Github repo](https://github.com/eamsden/pushbasedFRP)
+- [Netwire](https://hackage.haskell.org/package/netwire)
+- [FRP.Reactive](http://hackage.haskell.org/package/reactive-0.11.5)
