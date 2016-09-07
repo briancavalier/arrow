@@ -45,6 +45,8 @@ const doReset = pipe(eventTime, mapE(timerReset))
 const timer = pipe(anySignal(doStart, doStop, doReset), accum(timerZero()))
 
 const runTimer = both(timer, time)
+
+// TODO: This is gross.  Need a better way to support vdom integration
 const tap = ab => pipe(split(id(), ab), merge())
 const displayTimer = tap(pipe(unsplit(render), scan(patch, patch(container, render(timerZero(), 0)))));
 
