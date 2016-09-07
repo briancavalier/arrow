@@ -103,9 +103,7 @@ Both.prototype.step = function step$5 (t, ref) {
 // has no value when it doesn't occur
                              
 
-                                             
-
-// Non-occurrence
+// Event non-occurrence
 var NoEvent = undefined
 
 // Turn Events of A instead Events of B
@@ -113,6 +111,7 @@ function map        (f             )                        {
   return function (a) { return a === undefined ? a : f(a); }
 }
 
+// Transform event values
 function mapE        (f             )                            {
   return lift(map(f))
 }

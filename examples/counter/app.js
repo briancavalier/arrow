@@ -1,6 +1,10 @@
 (function () {
 'use strict';
 
+function pair        (a   , b   )         {
+  return [a, b]
+}
+
 function uncurry           (f                   )                    {
   return function (ref) {
     var a = ref[0];
@@ -103,9 +107,7 @@ Both.prototype.step = function step$5 (t, ref) {
 // has no value when it doesn't occur
                              
 
-                                             
-
-// Non-occurrence
+// Event non-occurrence
 var NoEvent = undefined
 
 // Turn Events of A instead Events of B
@@ -118,6 +120,9 @@ function mergeE     (a1        , a2        )         {
   return a1 === undefined ? a2 : a1
 }
 
+// Internal helper to allow continuous value transformations to be
+// applied when an event occurs
+// TODO: Consider exposing this if it seems useful
 function liftE        (ab                 )                            {
   return new LiftE(ab)
 }
@@ -136,12 +141,28 @@ LiftE.prototype.step = function step (t    , a      )                           
   return { value: value, next: liftE(next) }
 };
 
+// Transform event values
 function mapE        (f             )                            {
   return lift(map(f))
 }
 
+//
 function as        (b   )                            {
+  return sample
   return mapE(function (_) { return b; })
+}
+
+function sampleWith           (f                   )                                 {
+  return lift(function (ref) {
+    var a = ref[0];
+    var b = ref[1];
+
+    return a === undefined ? NoEvent : f(a, b);
+  })
+}
+
+function sample        ()                                      {
+  return sampleWith(pair)
 }
 
 // Merge events, preferring the left in the case of
@@ -150,7 +171,7 @@ function merge     ()                                      {
   return unsplit(mergeE)
 }
 
-function or        (left              , right              )               {
+function or        (left                           , right                           )                            {
   return liftE(pipe(both(left, right), merge()))
 }
 

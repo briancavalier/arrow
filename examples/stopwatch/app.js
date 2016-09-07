@@ -134,9 +134,7 @@ Both.prototype.step = function step$5 (t, ref) {
 // has no value when it doesn't occur
                              
 
-                                             
-
-// Non-occurrence
+// Event non-occurrence
 var NoEvent = undefined
 
 // Turn Events of A instead Events of B
@@ -149,6 +147,9 @@ function mergeE     (a1        , a2        )         {
   return a1 === undefined ? a2 : a1
 }
 
+// Internal helper to allow continuous value transformations to be
+// applied when an event occurs
+// TODO: Consider exposing this if it seems useful
 function liftE        (ab                 )                            {
   return new LiftE(ab)
 }
@@ -167,12 +168,14 @@ LiftE.prototype.step = function step (t    , a      )                           
   return { value: value, next: liftE(next) }
 };
 
+// Sample the current time when an event occurs
 var eventTime                                 = {
   step: function step (t      , a     )                                    {
     return { value: a === undefined ? NoEvent : t, next: this }
   }
 }
 
+// Transform event values
 function mapE        (f             )                            {
   return lift(map(f))
 }
@@ -183,7 +186,7 @@ function merge     ()                                      {
   return unsplit(mergeE)
 }
 
-function or        (left              , right              )               {
+function or        (left                           , right                           )                            {
   return liftE(pipe(both(left, right), merge()))
 }
 
@@ -203,22 +206,24 @@ Hold.prototype.step = function step (t    , a )                        {
   return { value: a, next: hold(a) }
 };
 
-// Accumulate Event carrying update functions
-function accumE     (initial   )                                      {
-  return scanE(function (b, f) { return f(b); }, initial)
-}
-
-function accum     (initial   )                                 {
-  return pipe(accumE(initial), hold(initial))
-}
-
-// Accumulate event values
+// Accumulate event
 function scanE        (f                   , initial   )                            {
   return new Accum(f, initial)
 }
 
+// Accumulate event to a continuous value
 function scan        (f                   , initial   )                       {
   return pipe(scanE(f, initial), hold(initial))
+}
+
+// Accumulate event, given an initial value and a update-function event
+function accumE     (initial   )                                      {
+  return scanE(function (a, f) { return f(a); }, initial)
+}
+
+// Accumulate event to a continuous value, given an initial value and a update-function event
+function accum     (initial   )                                 {
+  return pipe(accumE(initial), hold(initial))
 }
 
 var Accum = function Accum(f                 , value ) {
@@ -908,6 +913,7 @@ var render = function (timer, time) { return h$1('div.timer', { class: { running
     h$1('button.reset', { on: { click: reset } }, 'Reset')
   ]); }
 
+// Timer formatting
 var formatElapsed = function (ms) { return ((mins(ms)) + ":" + (secs(ms)) + ":" + (hundredths(ms))); }
 
 var mins = function (ms) { return pad((ms / (1000 * 60)) % 60); }
@@ -915,13 +921,7 @@ var secs = function (ms) { return pad((ms / 1000) % 60); }
 var hundredths = function (ms) { return pad((ms / 10) % 100); }
 var pad = function (n) { return n < 10 ? ("0" + (Math.floor(n))) : ("" + (Math.floor(n))); }
 
-var timerElapsed = function (time, ref) {
-  var running = ref.running;
-  var origin = ref.origin;
-  var total = ref.total;
-
-  return running ? (total + time - origin) : total;
-}
+// Timer functions
 var timerStart = function (time) { return function (ref) {
   var total = ref.total;
 
@@ -939,14 +939,27 @@ var timerReset = function (time) { return function (ref) {
   return ({ running: running, origin: time, total: 0 });
 ; }  }
 var timerZero = function () { return ({ running: false, origin: 0, total: 0 }); }
+var timerElapsed = function (time, ref) {
+  var running = ref.running;
+  var origin = ref.origin;
+  var total = ref.total;
 
+  return running ? (total + time - origin) : total;
+}
+
+// Timer events: start, stop, reset, each tagged with its occurrence time
 var doStart = pipe(eventTime, mapE(timerStart))
 var doStop = pipe(eventTime, mapE(timerStop))
 var doReset = pipe(eventTime, mapE(timerReset))
 
+// An interactive timer that responds to start, stop, and reset events
+// by changing (i.e. accumulating) state
 var timer = pipe(anySignal(doStart, doStop, doReset), accum(timerZero()))
 
+// Pair an interactive timer, with the (continuous) current time
 var runTimer = both(timer, time)
+
+// TODO: This is gross.  Need a better way to support vdom integration
 var tap = function (ab) { return pipe(split(id(), ab), merge()); }
 var displayTimer = tap(pipe(unsplit(render), scan(patch, patch(container, render(timerZero(), 0)))));
 

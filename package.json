@@ -9,6 +9,7 @@
     "dist/arrow.js"
   ],
   "scripts": {
+    "build:examples": "npm run build:counter && npm run build:mouse-position && npm run build:stopwatch && npm run build:timer",
     "build:counter": "rollup -c examples/rollup.config.js -o examples/counter/app.js examples/counter/index.js",
     "build:mouse-position": "rollup -c examples/rollup.config.js -o examples/mouse-position/app.js examples/mouse-position/index.js",
     "build:stopwatch": "rollup -c examples/rollup.config.js -o examples/stopwatch/app.js examples/stopwatch/index.js",
