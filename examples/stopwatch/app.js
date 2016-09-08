@@ -990,8 +990,8 @@ var hundredths = function (ms) { return pad((ms / 10) % 100); }
 var pad = function (n) { return n < 10 ? ("0" + (Math.floor(n))) : ("" + (Math.floor(n))); }
 
 // Timer functions
-var timerZero = ({ running: false, origin: 0, total: 0, laps: [{ start: 0, end: 0 }] })
-var timerReset = function (time) { return function (_) { return timerZero; }; }
+var timerZero = ({ running: false, origin: 0, total: 0, laps: [] })
+var timerReset = function (time) { return function (_) { return ({ running: false, origin: time, total: 0, laps: [] }); }; }
 
 var timerStart = function (time) { return function (ref) {
     var total = ref.total;
@@ -1015,18 +1015,20 @@ var timerLap = function (time) { return function (ref) {
     return ({ running: running, origin: origin, total: total, laps: timerAddLap(timerTotal(origin, total, time), laps) });
 ; }  }
 
-var timerAddLap = function (end, laps) { return [{ start: laps[0].end, end: end }].concat(laps); }
+var timerAddLap = function (end, laps) { return [{ start: timerLastLapEnd(laps), end: end }].concat(laps); }
 var timerLaps = function (ref) {
   var laps = ref.laps;
 
-  return laps.slice(0, laps.length-1);
+  return laps;
 }
+var timerLastLapEnd = function (laps) { return laps.length === 0 ? 0 : laps[0].end; }
 var timerCurrentLap = function (time, ref) {
+  var running = ref.running;
   var origin = ref.origin;
   var total = ref.total;
-  var end = ref.laps[0].end;
+  var laps = ref.laps;
 
-  return timerTotal(origin, total, time) - end;
+  return timerTotal(origin, total, time) - timerLastLapEnd(laps);
 }
 var timerElapsed = function (time, ref) {
   var running = ref.running;

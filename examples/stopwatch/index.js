@@ -47,8 +47,8 @@ const hundredths = ms => pad((ms / 10) % 100)
 const pad = n => n < 10 ? `0${Math.floor(n)}` : `${Math.floor(n)}`
 
 // Timer functions
-const timerZero = ({ running: false, origin: 0, total: 0, laps: [{ start: 0, end: 0 }] })
-const timerReset = time => (_) => timerZero
+const timerZero = ({ running: false, origin: 0, total: 0, laps: [] })
+const timerReset = time => (_) => ({ running: false, origin: time, total: 0, laps: [] })
 
 const timerStart = time => ({ total, laps }) =>
   ({ running: true, origin: time, total, laps })
@@ -57,9 +57,10 @@ const timerStop = time => ({ origin, total, laps }) =>
 const timerLap = time => ({ running, origin, total, laps }) =>
   ({ running, origin, total, laps: timerAddLap(timerTotal(origin, total, time), laps) })
 
-const timerAddLap = (end, laps) => [{ start: laps[0].end, end }].concat(laps)
-const timerLaps = ({ laps }) => laps.slice(0, laps.length-1)
-const timerCurrentLap = (time, { origin, total, laps: [{ end }]}) => timerTotal(origin, total, time) - end
+const timerAddLap = (end, laps) => [{ start: timerLastLapEnd(laps), end }].concat(laps)
+const timerLaps = ({ laps }) => laps
+const timerLastLapEnd = laps => laps.length === 0 ? 0 : laps[0].end
+const timerCurrentLap = (time, { running, origin, total, laps }) => timerTotal(origin, total, time) - timerLastLapEnd(laps)
 const timerElapsed = (time, { running, origin, total }) => timerTotal(origin, total, time)
 const timerTotal = (origin, total, time) => total + (time - origin)
 
