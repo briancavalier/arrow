@@ -967,7 +967,7 @@ var render = function (timer, time) {
     h$1('button.start', { on: { click: start } }, 'Start'),
     h$1('button.stop', { on: { click: stop } }, 'Stop'),
     h$1('button.lap', { on: { click: lap }, attrs: { disabled: !timer.running } }, 'Lap'),
-    h$1('ol.laps', { attrs: { reversed: true } }, timerLaps(timer).map(function (ref) {
+    h$1('ol.laps', { attrs: { reversed: true } }, timer.laps.map(function (ref) {
         var start = ref.start;
         var end = ref.end;
 
@@ -1016,11 +1016,6 @@ var timerLap = function (time) { return function (ref) {
 ; }  }
 
 var timerAddLap = function (end, laps) { return [{ start: timerLastLapEnd(laps), end: end }].concat(laps); }
-var timerLaps = function (ref) {
-  var laps = ref.laps;
-
-  return laps;
-}
 var timerLastLapEnd = function (laps) { return laps.length === 0 ? 0 : laps[0].end; }
 var timerCurrentLap = function (time, ref) {
   var running = ref.running;
