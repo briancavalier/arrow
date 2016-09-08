@@ -9,24 +9,30 @@
     <style>
         body {
             font-family: "HelveticaNeue-Light", "Helvetica Neue Light", "Helvetica Neue", Helvetica, Arial, "Lucida Grande", sans-serif;
+            font-size: 18px;
         }
         .timer {
             text-align: center;
+            width: 22em;
+            margin: auto;
         }
         .timer .elapsed {
-            font-size: 5em;
+            font-size: 4em;
             display: block;
+        }
+        .timer .lap-elapsed {
+            color: #666;
         }
         .timer button {
             border: none;
             background: none;
-            color: white;
+            color: black;
             outline: none;
             font-size: 1em;
             font-weight: 100;
-            width: 5em;
-            height: 5em;
-            border-radius: 2.5em;
+            width: 4em;
+            height: 4em;
+            border-radius: 2em;
             padding: 0;
             margin: 1em;
         }
@@ -34,21 +40,38 @@
             opacity: .25
         }
         .timer .start {
+            color: white;
             background: #00b400;
         }
         .timer .stop {
+            color: white;
             background: red;
         }
-        .timer .reset {
+        .timer .reset,
+        .timer .lap {
             color: black;
             border: 1px solid black;
         }
         .timer .stop,
         .timer.running .start {
-            display: none
+            display: none;
         }
         .timer.running .stop {
-            display: inline
+            display: inline;
+        }
+        .timer .laps {
+            /*font-size: 1.5em;*/
+            margin: 1em auto;
+            width: 5em;
+        }
+        .timer .laps li {
+            margin: .5em auto;
+        }
+        .minutes:after {
+            content: ":";
+        }
+        .seconds:after {
+            content: ".";
         }
     </style>
 </head>

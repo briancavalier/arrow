@@ -953,20 +953,36 @@ var stopInput = ref$1[1];
 var ref$2 = newInput();
 var reset = ref$2[0];
 var resetInput = ref$2[1];
+var ref$3 = newInput();
+var lap = ref$3[0];
+var lapInput = ref$3[1];
 
 var render = function (timer, time) {
   var elapsed = timerElapsed(time, timer)
   var zero = elapsed === 0
   return h$1('div.timer', { class: { running: timer.running, zero: zero } }, [
-    h$1('span.elapsed', ("" + (formatElapsed(elapsed)))),
+    h$1('div.elapsed', renderDuration(elapsed)),
+    h$1('div.lap-elapsed', renderDuration(timerCurrentLap(time, timer))),
     h$1('button.reset', { on: { click: reset }, attrs: { disabled: timer.running || zero } }, 'Reset'),
     h$1('button.start', { on: { click: start } }, 'Start'),
-    h$1('button.stop', { on: { click: stop } }, 'Stop')
+    h$1('button.stop', { on: { click: stop } }, 'Stop'),
+    h$1('button.lap', { on: { click: lap }, attrs: { disabled: !timer.running } }, 'Lap'),
+    h$1('ol.laps', { attrs: { reversed: true } }, timerLaps(timer).map(function (ref) {
+        var start = ref.start;
+        var end = ref.end;
+
+        return h$1('li', renderDuration(end - start));
+  })
+    )
   ])
 }
 
 // Timer formatting
-var formatElapsed = function (ms) { return ((mins(ms)) + ":" + (secs(ms)) + ":" + (hundredths(ms))); }
+var renderDuration = function (ms) { return [
+  h$1('span.minutes', ("" + (mins(ms)))),
+  h$1('span.seconds', ("" + (secs(ms)))),
+  h$1('span.hundredths', ("" + (hundredths(ms))))
+]; }
 
 var mins = function (ms) { return pad((ms / (1000 * 60)) % 60); }
 var secs = function (ms) { return pad((ms / 1000) % 60); }
@@ -974,53 +990,81 @@ var hundredths = function (ms) { return pad((ms / 10) % 100); }
 var pad = function (n) { return n < 10 ? ("0" + (Math.floor(n))) : ("" + (Math.floor(n))); }
 
 // Timer functions
-var timerStart = function (time) { return function (ref) {
-  var total = ref.total;
+var timerZero = ({ running: false, origin: 0, total: 0, laps: [{ start: 0, end: 0 }] })
+var timerReset = function (time) { return function (_) { return timerZero; }; }
 
-  return ({ running: true, origin: time, total: total });
+var timerStart = function (time) { return function (ref) {
+    var total = ref.total;
+    var laps = ref.laps;
+
+    return ({ running: true, origin: time, total: total, laps: laps });
 ; }  }
 var timerStop = function (time) { return function (ref) {
+    var origin = ref.origin;
+    var total = ref.total;
+    var laps = ref.laps;
+
+    return ({ running: false, origin: time, total: timerTotal(origin, total, time), laps: laps });
+; }  }
+var timerLap = function (time) { return function (ref) {
+    var running = ref.running;
+    var origin = ref.origin;
+    var total = ref.total;
+    var laps = ref.laps;
+
+    return ({ running: running, origin: origin, total: total, laps: timerAddLap(timerTotal(origin, total, time), laps) });
+; }  }
+
+var timerAddLap = function (end, laps) { return [{ start: laps[0].end, end: end }].concat(laps); }
+var timerLaps = function (ref) {
+  var laps = ref.laps;
+
+  return laps.slice(0, laps.length-1);
+}
+var timerCurrentLap = function (time, ref) {
   var origin = ref.origin;
   var total = ref.total;
+  var end = ref.laps[0].end;
 
-  return ({ running: false, origin: origin, total: total + (time - origin) });
-; }  }
-var timerReset = function (time) { return function (ref) {
-  var running = ref.running;
-
-  return ({ running: running, origin: time, total: 0 });
-; }  }
-var timerZero = function () { return ({ running: false, origin: 0, total: 0 }); }
+  return timerTotal(origin, total, time) - end;
+}
 var timerElapsed = function (time, ref) {
   var running = ref.running;
   var origin = ref.origin;
   var total = ref.total;
 
-  return running ? (total + time - origin) : total;
+  return timerTotal(origin, total, time);
 }
+var timerTotal = function (origin, total, time) { return total + (time - origin); }
 
-// Timer events: start, stop, reset, each tagged with its occurrence time
+// Timer events, each tagged with its occurrence time
 var doStart = pipe(eventTime, mapE(timerStart))
 var doStop = pipe(eventTime, mapE(timerStop))
 var doReset = pipe(eventTime, mapE(timerReset))
+var doLap = pipe(eventTime, mapE(timerLap))
 
-// An interactive timer that responds to start, stop, and reset events
+// An interactive timer that responds to start, stop, reset, and lap events
 // by changing (i.e. accumulating) state
-var timer = pipe(anySignal(doStart, doStop, doReset), accum(timerZero()))
+var timer = pipe(anySignal(doStart, doStop, doReset, doLap), accum(timerZero))
 
 // Pair an interactive timer, with the (continuous) current time
 var runTimer = both(timer, time)
 
 // TODO: This is gross.  Need a better way to support vdom integration
 var tap = function (ab) { return pipe(split(id(), ab), merge()); }
-var displayTimer = tap(pipe(unsplit(render), scan(patch, patch(container, render(timerZero(), 0)))));
+var displayTimer = tap(pipe(unsplit(render), scan(patch, patch(container, render(timerZero, 0)))));
 
 var update = pipe(runTimer, displayTimer)
 
-loop(update, anyInput(startInput, stopInput, resetInput, never), clockSession(), function (ref) {
-  var running = ref[0].running;
+var timerInputs = anyInput(startInput, stopInput, resetInput, lapInput)
+var stoppedInputs = anyInput(timerInputs, never)
+var runningInputs = anyInput(timerInputs, animationFrames)
 
-  return anyInput(startInput, stopInput, resetInput, running ? animationFrames : never)
+loop(update, stoppedInputs, clockSession(),
+  function (ref) {
+    var running = ref[0].running;
+
+    return running ? runningInputs : stoppedInputs;
 })
 
 }());

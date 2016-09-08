@@ -16,21 +16,30 @@ const patch = snabbdom.init([events, attrs, clss])
 const [start, startInput] = newInput()
 const [stop, stopInput] = newInput()
 const [reset, resetInput] = newInput()
+const [lap, lapInput] = newInput()
 
 const render = (timer, time) => {
   const elapsed = timerElapsed(time, timer)
   const zero = elapsed === 0
   return h('div.timer', { class: { running: timer.running, zero } }, [
-    h('span.elapsed', `${formatElapsed(elapsed)}`),
+    h('div.elapsed', renderDuration(elapsed)),
+    h('div.lap-elapsed', renderDuration(timerCurrentLap(time, timer))),
     h('button.reset', { on: { click: reset }, attrs: { disabled: timer.running || zero } }, 'Reset'),
     h('button.start', { on: { click: start } }, 'Start'),
-    h('button.stop', { on: { click: stop } }, 'Stop')
+    h('button.stop', { on: { click: stop } }, 'Stop'),
+    h('button.lap', { on: { click: lap }, attrs: { disabled: !timer.running } }, 'Lap'),
+    h('ol.laps', { attrs: { reversed: true } }, timerLaps(timer).map(({ start, end }) =>
+      h('li', renderDuration(end - start)))
+    )
   ])
 }
 
 // Timer formatting
-const formatElapsed = ms =>
-  `${mins(ms)}:${secs(ms)}:${hundredths(ms)}`
+const renderDuration = ms => [
+  h('span.minutes', `${mins(ms)}`),
+  h('span.seconds', `${secs(ms)}`),
+  h('span.hundredths', `${hundredths(ms)}`)
+]
 
 const mins = ms => pad((ms / (1000 * 60)) % 60)
 const secs = ms => pad((ms / 1000) % 60)
@@ -38,30 +47,44 @@ const hundredths = ms => pad((ms / 10) % 100)
 const pad = n => n < 10 ? `0${Math.floor(n)}` : `${Math.floor(n)}`
 
 // Timer functions
-const timerStart = time => ({ total }) => ({ running: true, origin: time, total })
-const timerStop = time => ({ origin, total }) => ({ running: false, origin, total: total + (time - origin) })
-const timerReset = time => ({ running }) => ({ running, origin: time, total: 0 })
-const timerZero = () => ({ running: false, origin: 0, total: 0 })
-const timerElapsed = (time, { running, origin, total }) => running ? (total + time - origin) : total
+const timerZero = ({ running: false, origin: 0, total: 0, laps: [{ start: 0, end: 0 }] })
+const timerReset = time => (_) => timerZero
 
-// Timer events: start, stop, reset, each tagged with its occurrence time
+const timerStart = time => ({ total, laps }) =>
+  ({ running: true, origin: time, total, laps })
+const timerStop = time => ({ origin, total, laps }) =>
+  ({ running: false, origin: time, total: timerTotal(origin, total, time), laps })
+const timerLap = time => ({ running, origin, total, laps }) =>
+  ({ running, origin, total, laps: timerAddLap(timerTotal(origin, total, time), laps) })
+
+const timerAddLap = (end, laps) => [{ start: laps[0].end, end }].concat(laps)
+const timerLaps = ({ laps }) => laps.slice(0, laps.length-1)
+const timerCurrentLap = (time, { origin, total, laps: [{ end }]}) => timerTotal(origin, total, time) - end
+const timerElapsed = (time, { running, origin, total }) => timerTotal(origin, total, time)
+const timerTotal = (origin, total, time) => total + (time - origin)
+
+// Timer events, each tagged with its occurrence time
 const doStart = pipe(eventTime, mapE(timerStart))
 const doStop = pipe(eventTime, mapE(timerStop))
 const doReset = pipe(eventTime, mapE(timerReset))
+const doLap = pipe(eventTime, mapE(timerLap))
 
-// An interactive timer that responds to start, stop, and reset events
+// An interactive timer that responds to start, stop, reset, and lap events
 // by changing (i.e. accumulating) state
-const timer = pipe(anySignal(doStart, doStop, doReset), accum(timerZero()))
+const timer = pipe(anySignal(doStart, doStop, doReset, doLap), accum(timerZero))
 
 // Pair an interactive timer, with the (continuous) current time
 const runTimer = both(timer, time)
 
 // TODO: This is gross.  Need a better way to support vdom integration
 const tap = ab => pipe(split(id(), ab), merge())
-const displayTimer = tap(pipe(unsplit(render), scan(patch, patch(container, render(timerZero(), 0)))));
+const displayTimer = tap(pipe(unsplit(render), scan(patch, patch(container, render(timerZero, 0)))));
 
 const update = pipe(runTimer, displayTimer)
 
-loop(update, anyInput(startInput, stopInput, resetInput, never), clockSession(), ([{ running }]) => {
-  return anyInput(startInput, stopInput, resetInput, running ? animationFrames : never)
-})
+const timerInputs = anyInput(startInput, stopInput, resetInput, lapInput)
+const stoppedInputs = anyInput(timerInputs, never)
+const runningInputs = anyInput(timerInputs, animationFrames)
+
+loop(update, stoppedInputs, clockSession(),
+  ([{ running }]) => running ? runningInputs : stoppedInputs)
