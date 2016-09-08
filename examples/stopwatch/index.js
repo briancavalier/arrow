@@ -28,7 +28,7 @@ const render = (timer, time) => {
     h('button.start', { on: { click: start } }, 'Start'),
     h('button.stop', { on: { click: stop } }, 'Stop'),
     h('button.lap', { on: { click: lap }, attrs: { disabled: !timer.running } }, 'Lap'),
-    h('ol.laps', { attrs: { reversed: true } }, timerLaps(timer).map(({ start, end }) =>
+    h('ol.laps', { attrs: { reversed: true } }, timer.laps.map(({ start, end }) =>
       h('li', renderDuration(end - start)))
     )
   ])
@@ -58,7 +58,6 @@ const timerLap = time => ({ running, origin, total, laps }) =>
   ({ running, origin, total, laps: timerAddLap(timerTotal(origin, total, time), laps) })
 
 const timerAddLap = (end, laps) => [{ start: timerLastLapEnd(laps), end }].concat(laps)
-const timerLaps = ({ laps }) => laps
 const timerLastLapEnd = laps => laps.length === 0 ? 0 : laps[0].end
 const timerCurrentLap = (time, { running, origin, total, laps }) => timerTotal(origin, total, time) - timerLastLapEnd(laps)
 const timerElapsed = (time, { running, origin, total }) => timerTotal(origin, total, time)
