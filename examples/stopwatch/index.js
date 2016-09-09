@@ -1,4 +1,4 @@
-import { newInput, never, time, id, split, merge, mapE, or, both, eventTime, unsplit, pipe, scan, accum, clockSession, bothI, loop } from '../../src/index'
+import { newInput, never, time, mapE, or, both, eventTime, unsplit, pipe, accum, clockSession, bothI, loop } from '../../src/index'
 import { animationFrames } from '../../src/dom'
 import snabbdom from 'snabbdom'
 import events from 'snabbdom/modules/eventlisteners'
@@ -18,10 +18,14 @@ const [stop, stopInput] = newInput()
 const [reset, resetInput] = newInput()
 const [lap, lapInput] = newInput()
 
+const timerInputs = anyInput(startInput, stopInput, resetInput, lapInput)
+const stoppedInputs = anyInput(timerInputs, never)
+const runningInputs = anyInput(timerInputs, animationFrames)
+
 const render = (timer, time) => {
   const elapsed = timerElapsed(time, timer)
   const zero = elapsed === 0
-  return h('div.timer', { class: { running: timer.running, zero } }, [
+  const vtree = h('div.timer', { class: { running: timer.running, zero } }, [
     h('div.elapsed', renderDuration(elapsed)),
     h('div.lap-elapsed', renderDuration(timerCurrentLap(time, timer))),
     h('button.reset', { on: { click: reset }, attrs: { disabled: timer.running || zero } }, 'Reset'),
@@ -32,6 +36,8 @@ const render = (timer, time) => {
       h('li', renderDuration(end - start)))
     )
   ])
+
+  return [timer.running ? runningInputs : stoppedInputs, vtree]
 }
 
 // Timer formatting
@@ -75,16 +81,11 @@ const timer = pipe(anySignal(doStart, doStop, doReset, doLap), accum(timerZero))
 
 // Pair an interactive timer, with the (continuous) current time
 const runTimer = both(timer, time)
+const displayTimer = unsplit(render)
 
-// TODO: This is gross.  Need a better way to support vdom integration
-const tap = ab => pipe(split(id(), ab), merge())
-const displayTimer = tap(pipe(unsplit(render), scan(patch, patch(container, render(timerZero, 0)))));
+const updateTimer = pipe(runTimer, displayTimer)
 
-const update = pipe(runTimer, displayTimer)
+// TODO: Find a way to streamline setting up initial inputs and state
+const [inputs, vtree] = render(timerZero, 0)
 
-const timerInputs = anyInput(startInput, stopInput, resetInput, lapInput)
-const stoppedInputs = anyInput(timerInputs, never)
-const runningInputs = anyInput(timerInputs, animationFrames)
-
-loop(update, stoppedInputs, clockSession(),
-  ([{ running }]) => running ? runningInputs : stoppedInputs)
+loop(patch, inputs, patch(container, vtree), clockSession(), updateTimer)
