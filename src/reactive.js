@@ -1,5 +1,5 @@
 // @flow
-import { dup, uncurry } from './pair'
+import { dup, swap, uncurry } from './pair'
 
 export type Time = number
 
@@ -81,6 +81,10 @@ export function id <A> (): ReactiveT<A, A> {
 // Apply a Reactive transform to the first element of a pair
 export function first <A, B, C> (ab: ReactiveT<A, B>): ReactiveT<[A, C], [B, C]> {
   return new First(ab)
+}
+
+export function second <A, B, C> (ab: ReactiveT<A, B>): ReactiveT<[C, A], [C, B]> {
+  return dimap(swap, swap, first(ab))
 }
 
 // export function second <A, B, C> (ab: ReactiveT<A, B>): ReactiveT<[C, A], [C, B]> {

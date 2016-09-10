@@ -49,6 +49,31 @@ Lift.prototype.step = function step$1 (t    , a )                   {
   return step(this.f(a), this)
 };
 
+// first  :: Reactive t a b -> Reactive t [a, c] [b, c]
+// second :: Reactive t a b -> Reactive t [c, a] [c, b]
+// Apply a Reactive transform to the first element of a pair
+function first           (ab                 )                            {
+  return new First(ab)
+}
+
+// export function second <A, B, C> (ab: ReactiveT<A, B>): ReactiveT<[C, A], [C, B]> {
+//   return first(dimap(swap, swap, ab))
+// }
+
+var First = function First (ab               ) {
+  this.ab = ab
+};
+
+First.prototype.step = function step$2 (t    , ref      )                             {
+    var a = ref[0];
+    var c = ref[1];
+
+  var ref$1 = this.ab.step(t, a);
+    var b = ref$1.value;
+    var next = ref$1.next;
+  return step([b, c], first(next))
+};
+
 // pipe :: (Reactive t a b ... Reactive t y z) -> Reactive t a z
 // Compose many Reactive transformations, left to right
 var pipe = function (ab) {
@@ -183,6 +208,11 @@ function scanE        (f                   , initial   )                        
   return new Accum(f, initial)
 }
 
+// Accumulate event to a continuous value
+function scan        (f                   , initial   )                       {
+  return pipe(scanE(f, initial), hold(initial))
+}
+
 // Accumulate event, given an initial value and a update-function event
 function accumE     (initial   )                                      {
   return scanE(function (a, f) { return f(a); }, initial)
@@ -268,11 +298,9 @@ function schedule        (cancel                   , schedule                   
   }
 }
 
-function loop              (
-  update                   ,
-  input          ,
-  state   ,
+function loop           (
   session            ,
+  input          ,
   sf                               
 )               {
   var dispose = input(function (a) {
@@ -281,15 +309,13 @@ function loop              (
     var nextSession = ref.nextSession;
     var ref$1 = sf.step(sample, a);
     var ref$1_value = ref$1.value;
-    var nextInput = ref$1_value[0];
-    var outputState = ref$1_value[1];
+    var _ = ref$1_value[0];
+    var nextInput = ref$1_value[1];
     var next = ref$1.next;
-
-    state = update(state, outputState)
 
     if(nextInput !== input) {
       dispose()
-      dispose = loop(update, nextInput, state, nextSession, next)
+      dispose = loop(nextSession, nextInput, next)
     } else {
       session = nextSession
       sf = next
@@ -326,6 +352,13 @@ ClockSession.prototype.step = function step ()                    {
   }
   return sessionStep(this.time, new ClockSession(this.start))
 };
+
+//      
+                                           
+                                    
+function vdomUpdate            (patch                   , init       )                                                  {
+  return first(scan(patch, init))
+}
 
 //      
                                     
@@ -933,6 +966,8 @@ var timerInputs = anyInput(startInput, stopInput, resetInput, lapInput)
 var stoppedInputs = anyInput(timerInputs, never)
 var runningInputs = anyInput(timerInputs, animationFrames)
 
+// Render timer using current time
+// Returns [inputs, vtree]
 var render = function (timer, time) {
   var elapsed = timerElapsed(time, timer)
   var zero = elapsed === 0
@@ -952,7 +987,7 @@ var render = function (timer, time) {
     )
   ])
 
-  return [timer.running ? runningInputs : stoppedInputs, vtree]
+  return [vtree, timer.running ? runningInputs : stoppedInputs]
 }
 
 // Timer formatting
@@ -1004,7 +1039,6 @@ var timerCurrentLap = function (time, ref) {
   return timerTotal(origin, total, time) - timerLastLapEnd(laps);
 }
 var timerElapsed = function (time, ref) {
-  var running = ref.running;
   var origin = ref.origin;
   var total = ref.total;
 
@@ -1026,13 +1060,11 @@ var timer = pipe(anySignal(doStart, doStop, doReset, doLap), accum(timerZero))
 var runTimer = both(timer, time)
 var displayTimer = unsplit(render)
 
-var updateTimer = pipe(runTimer, displayTimer)
-
-// TODO: Find a way to streamline setting up initial inputs and state
 var ref$4 = render(timerZero, 0);
-var inputs = ref$4[0];
-var vtree = ref$4[1];
+var vtree = ref$4[0];
+var inputs = ref$4[1];
+var updateTimer = pipe(runTimer, displayTimer, vdomUpdate(patch, patch(container, vtree)))
 
-loop(patch, inputs, patch(container, vtree), clockSession(), updateTimer)
+loop(clockSession(), inputs, updateTimer)
 
 }());

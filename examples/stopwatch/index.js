@@ -1,4 +1,5 @@
 import { newInput, never, time, mapE, or, both, eventTime, unsplit, pipe, accum, clockSession, bothI, loop } from '../../src/index'
+import { vdomUpdate } from '../../src/vdom'
 import { animationFrames } from '../../src/dom'
 import snabbdom from 'snabbdom'
 import events from 'snabbdom/modules/eventlisteners'
@@ -22,6 +23,8 @@ const timerInputs = anyInput(startInput, stopInput, resetInput, lapInput)
 const stoppedInputs = anyInput(timerInputs, never)
 const runningInputs = anyInput(timerInputs, animationFrames)
 
+// Render timer using current time
+// Returns [inputs, vtree]
 const render = (timer, time) => {
   const elapsed = timerElapsed(time, timer)
   const zero = elapsed === 0
@@ -37,7 +40,7 @@ const render = (timer, time) => {
     )
   ])
 
-  return [timer.running ? runningInputs : stoppedInputs, vtree]
+  return [vtree, timer.running ? runningInputs : stoppedInputs]
 }
 
 // Timer formatting
@@ -66,7 +69,7 @@ const timerLap = time => ({ running, origin, total, laps }) =>
 const timerAddLap = (end, laps) => [{ start: timerLastLapEnd(laps), end }].concat(laps)
 const timerLastLapEnd = laps => laps.length === 0 ? 0 : laps[0].end
 const timerCurrentLap = (time, { running, origin, total, laps }) => timerTotal(origin, total, time) - timerLastLapEnd(laps)
-const timerElapsed = (time, { running, origin, total }) => timerTotal(origin, total, time)
+const timerElapsed = (time, { origin, total }) => timerTotal(origin, total, time)
 const timerTotal = (origin, total, time) => total + (time - origin)
 
 // Timer events, each tagged with its occurrence time
@@ -83,9 +86,7 @@ const timer = pipe(anySignal(doStart, doStop, doReset, doLap), accum(timerZero))
 const runTimer = both(timer, time)
 const displayTimer = unsplit(render)
 
-const updateTimer = pipe(runTimer, displayTimer)
+const [vtree, inputs] = render(timerZero, 0)
+const updateTimer = pipe(runTimer, displayTimer, vdomUpdate(patch, patch(container, vtree)))
 
-// TODO: Find a way to streamline setting up initial inputs and state
-const [inputs, vtree] = render(timerZero, 0)
-
-loop(patch, inputs, patch(container, vtree), clockSession(), updateTimer)
+loop(clockSession(), inputs, updateTimer)
