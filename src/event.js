@@ -55,9 +55,8 @@ export function mapE <A, B> (f: (a: A) => B): ReactiveT<Evt<A>, Evt<B>> {
   return lift(map(f))
 }
 
-//
+// When an event occurs, make its value b
 export function as <A, B> (b: B): ReactiveT<Evt<A>, Evt<B>> {
-  return sample
   return mapE(_ => b)
 }
 

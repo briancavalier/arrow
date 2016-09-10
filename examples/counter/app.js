@@ -1,10 +1,6 @@
 (function () {
 'use strict';
 
-function pair        (a   , b   )         {
-  return [a, b]
-}
-
 function uncurry           (f                   )                    {
   return function (ref) {
     var a = ref[0];
@@ -48,6 +44,26 @@ var Lift = function Lift (f           ) {
 
 Lift.prototype.step = function step$1 (t    , a )                   {
   return step(this.f(a), this)
+};
+
+// first  :: Reactive t a b -> Reactive t [a, c] [b, c]
+// Apply a Reactive transform to the first element of a pair
+function first           (ab                 )                            {
+  return new First(ab)
+}
+
+var First = function First (ab               ) {
+  this.ab = ab
+};
+
+First.prototype.step = function step$2 (t    , ref      )                             {
+    var a = ref[0];
+    var c = ref[1];
+
+  var ref$1 = this.ab.step(t, a);
+    var b = ref$1.value;
+    var next = ref$1.next;
+  return step([b, c], first(next))
 };
 
 // pipe :: (Reactive t a b ... Reactive t y z) -> Reactive t a z
@@ -146,23 +162,9 @@ function mapE        (f             )                            {
   return lift(map(f))
 }
 
-//
+// When an event occurs, make its value b
 function as        (b   )                            {
-  return sample
   return mapE(function (_) { return b; })
-}
-
-function sampleWith           (f                   )                                 {
-  return lift(function (ref) {
-    var a = ref[0];
-    var b = ref[1];
-
-    return a === undefined ? NoEvent : f(a, b);
-  })
-}
-
-function sample        ()                                      {
-  return sampleWith(pair)
 }
 
 // Merge events, preferring the left in the case of
@@ -175,9 +177,30 @@ function or        (left                           , right                      
   return liftE(pipe(both(left, right), merge()))
 }
 
+// Turn an event into a stepped continuous value
+function hold     (initial   )                       {
+  return new Hold(initial)
+}
+
+var Hold = function Hold (value ) {
+  this.value = value
+};
+
+Hold.prototype.step = function step (t    , a )                        {
+  if(a === undefined) {
+    return { value: this.value, next: this }
+  }
+  return { value: a, next: hold(a) }
+};
+
 // Accumulate event
 function scanE        (f                   , initial   )                            {
   return new Accum(f, initial)
+}
+
+// Accumulate event to a continuous value
+function scan        (f                   , initial   )                       {
+  return pipe(scanE(f, initial), hold(initial))
 }
 
 var Accum = function Accum(f                 , value ) {
@@ -237,39 +260,31 @@ function newInput     ()                       {
   return [occur, input]
 }
 
-//      
-                                                  
-                                  
-                                        
-
-                                 
-                                             
- 
-
-                                     
-           
-                         
- 
-
-function run           (
-  r                        ,
-  input          ,
+function loop           (
   session            ,
-  handleOutput               
+  input          ,
+  sf                               
 )               {
-  return input(function (a) {
+  var dispose = input(function (a) {
     var ref = session.step();
     var sample = ref.sample;
     var nextSession = ref.nextSession;
-    session = nextSession
-
-    var ref$1 = r.step(sample, a);
-    var value = ref$1.value;
+    var ref$1 = sf.step(sample, a);
+    var ref$1_value = ref$1.value;
+    var _ = ref$1_value[0];
+    var nextInput = ref$1_value[1];
     var next = ref$1.next;
-    r = next
 
-    return handleOutput(value)
+    if(nextInput !== input) {
+      dispose()
+      dispose = loop(nextSession, nextInput, next)
+    } else {
+      session = nextSession
+      sf = next
+    }
   })
+
+  return function () { return dispose(); }
 }
 
 //      
@@ -299,6 +314,13 @@ ClockSession.prototype.step = function step ()                    {
   }
   return sessionStep(this.time, new ClockSession(this.start))
 };
+
+//      
+                                           
+                                    
+function vdomUpdate            (patch                   , init       )                                                  {
+  return first(scan(patch, init))
+}
 
 function interopDefault(ex) {
 	return ex && typeof ex === 'object' && 'default' in ex ? ex['default'] : ex;
@@ -465,7 +487,9 @@ function init(modules, api) {
   }
 
   function emptyNodeAt(elm) {
-    return VNode(api.tagName(elm).toLowerCase(), {}, [], undefined, elm);
+    var id = elm.id ? '#' + elm.id : '';
+    var c = elm.className ? '.' + elm.className.split(' ').join('.') : '';
+    return VNode(api.tagName(elm).toLowerCase() + id + c, {}, [], undefined, elm);
   }
 
   function createRmCb(childElm, listeners) {
@@ -687,68 +711,107 @@ module.exports = {init: init};
 var snabbdom$1 = interopDefault(snabbdom);
 
 var eventlisteners = createCommonjsModule(function (module) {
-var is = interopDefault(require$$0);
-
-function arrInvoker(arr) {
-  return function() {
-    if (!arr.length) return;
-    // Special case when length is two, for performance
-    arr.length === 2 ? arr[0](arr[1]) : arr[0].apply(undefined, arr.slice(1));
-  };
+function invokeHandler(handler, vnode, event) {
+  if (typeof handler === "function") {
+    // call function handler
+    handler.call(vnode, event, vnode);
+  } else if (typeof handler === "object") {
+    // call handler with arguments
+    if (typeof handler[0] === "function") {
+      // special case for single argument for performance
+      if (handler.length === 2) {
+        handler[0].call(vnode, handler[1], event, vnode);
+      } else {
+        var args = handler.slice(1);
+        args.push(event);
+        args.push(vnode);
+        handler[0].apply(vnode, args);
+      }
+    } else {
+      // call multiple handlers
+      for (var i = 0; i < handler.length; i++) {
+        invokeHandler(handler[i]);
+      }
+    }
+  }
 }
 
-function fnInvoker(o) {
-  return function(ev) { 
-    if (o.fn === null) return;
-    o.fn(ev); 
-  };
+function handleEvent(event, vnode) {
+  var name = event.type,
+      on = vnode.data.on;
+
+  // call event handler(s) if exists
+  if (on && on[name]) {
+    invokeHandler(on[name], vnode, event);
+  }
+}
+
+function createListener() {
+  return function handler(event) {
+    handleEvent(event, handler.vnode);
+  }
 }
 
 function updateEventListeners(oldVnode, vnode) {
-  var name, cur, old, elm = vnode.elm,
-      oldOn = oldVnode.data.on, on = vnode.data.on;
+  var oldOn = oldVnode.data.on,
+      oldListener = oldVnode.listener,
+      oldElm = oldVnode.elm,
+      on = vnode && vnode.data.on,
+      elm = vnode && vnode.elm,
+      name;
 
-  if (!on && !oldOn) return;
-  on = on || {};
-  oldOn = oldOn || {};
+  // optimization for reused immutable handlers
+  if (oldOn === on) {
+    return;
+  }
 
-  for (name in on) {
-    cur = on[name];
-    old = oldOn[name];
-    if (old === undefined) {
-      if (is.array(cur)) {
-        elm.addEventListener(name, arrInvoker(cur));
-      } else {
-        cur = {fn: cur};
-        on[name] = cur;
-        elm.addEventListener(name, fnInvoker(cur));
+  // remove existing listeners which no longer used
+  if (oldOn && oldListener) {
+    // if element changed or deleted we remove all existing listeners unconditionally
+    if (!on) {
+      for (name in oldOn) {
+        // remove listener if element was changed or existing listeners removed
+        oldElm.removeEventListener(name, oldListener, false);
       }
-    } else if (is.array(old)) {
-      // Deliberately modify old array since it's captured in closure created with `arrInvoker`
-      old.length = cur.length;
-      for (var i = 0; i < old.length; ++i) old[i] = cur[i];
-      on[name]  = old;
     } else {
-      old.fn = cur;
-      on[name] = old;
+      for (name in oldOn) {
+        // remove listener if existing listener removed
+        if (!on[name]) {
+          oldElm.removeEventListener(name, oldListener, false);
+        }
+      }
     }
   }
-  if (oldOn) {
-    for (name in oldOn) {
-      if (on[name] === undefined) {
-        var old = oldOn[name];
-        if (is.array(old)) {
-          old.length = 0;
-        }
-        else {
-          old.fn = null;
+
+  // add new listeners which has not already attached
+  if (on) {
+    // reuse existing listener or create new
+    var listener = vnode.listener = oldVnode.listener || createListener();
+    // update vnode for listener
+    listener.vnode = vnode;
+
+    // if element changed or added we add all needed listeners unconditionally
+    if (!oldOn) {
+      for (name in on) {
+        // add listener if element was changed or new listeners added
+        elm.addEventListener(name, listener, false);
+      }
+    } else {
+      for (name in on) {
+        // add listener if new listener added
+        if (!oldOn[name]) {
+          elm.addEventListener(name, listener, false);
         }
       }
     }
   }
 }
 
-module.exports = {create: updateEventListeners, update: updateEventListeners};
+module.exports = {
+  create: updateEventListeners,
+  update: updateEventListeners,
+  destroy: updateEventListeners
+};
 });
 
 var events = interopDefault(eventlisteners);
@@ -794,28 +857,30 @@ var h$1 = interopDefault(h);
 
 //      
 var container = document.getElementById('app')
-
 var patch = snabbdom$1.init([events])
 
 var ref = newInput();
-var incClick = ref[0];
+var inc = ref[0];
 var incInput = ref[1];
 var ref$1 = newInput();
-var decClick = ref$1[0];
+var dec = ref$1[0];
 var decInput = ref$1[1];
 
-var render = function (value) { return h$1('div#container', [
-    h$1('button.inc', { on: { click: incClick } }, '+'),
-    h$1('p.value', value),
-    h$1('button.dec', { on: { click: decClick } }, '-')
-  ]); }
+var render = function (value) { return [h$1('div#app', [
+    h$1('p', value),
+    h$1('button', { on: { click: dec } }, '-'),
+    h$1('button', { on: { click: inc } }, '+')
+  ]), both$1(incInput, decInput)]; }
 
 var add = function (a, b) { return a + b; }
-var counter = pipe(or(as(1), as(-1)), scanE(add, 0))
-var update = pipe(lift(render), scanE(patch, patch(container, render(0))))
-var runCounter = pipe(counter, update)
+var counter = pipe(or(as(1), as(-1)), scan(add, 0))
 
-var log = function (x) { return console.log(x); }
-run(runCounter, both$1(incInput, decInput), clockSession(), log)
+var ref$2 = render(0);
+var vtree = ref$2[0];
+var inputs = ref$2[1];
+var update = vdomUpdate(patch, patch(container, vtree));
+var runCounter = pipe(counter, lift(render), update)
+
+loop(clockSession(), inputs, runCounter)
 
 }());

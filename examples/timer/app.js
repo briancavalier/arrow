@@ -1,10 +1,6 @@
 (function () {
 'use strict';
 
-function pair        (a   , b   )         {
-  return [a, b]
-}
-
 function uncurry           (f                   )                    {
   return function (ref) {
     var a = ref[0];
@@ -146,23 +142,9 @@ function mapE        (f             )                            {
   return lift(map(f))
 }
 
-//
+// When an event occurs, make its value b
 function as        (b   )                            {
-  return sample
   return mapE(function (_) { return b; })
-}
-
-function sampleWith           (f                   )                                 {
-  return lift(function (ref) {
-    var a = ref[0];
-    var b = ref[1];
-
-    return a === undefined ? NoEvent : f(a, b);
-  })
-}
-
-function sample        ()                                      {
-  return sampleWith(pair)
 }
 
 // Merge events, preferring the left in the case of
@@ -491,7 +473,9 @@ function init(modules, api) {
   }
 
   function emptyNodeAt(elm) {
-    return VNode(api.tagName(elm).toLowerCase(), {}, [], undefined, elm);
+    var id = elm.id ? '#' + elm.id : '';
+    var c = elm.className ? '.' + elm.className.split(' ').join('.') : '';
+    return VNode(api.tagName(elm).toLowerCase() + id + c, {}, [], undefined, elm);
   }
 
   function createRmCb(childElm, listeners) {
