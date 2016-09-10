@@ -15,4 +15,7 @@ export const click = domInput('click')
 export const mousemove = domInput('mousemove')
 export const keydown = domInput('keydown')
 
-export const animationFrames = schedule(cancelAnimationFrame, requestAnimationFrame)
+export const animationFrames = f => {
+  const handle = requestAnimationFrame(f)
+  return () => cancelAnimationFrame(handle)
+}

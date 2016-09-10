@@ -231,8 +231,6 @@ Accum.prototype.step = function step (t    , a )                        {
 
                                      
 
-
-
 // Turn a pair of inputs into an input of pairs
 function both$1       (input1          , input2          )                          {
   return function (f) {
@@ -260,11 +258,7 @@ function newInput     ()                       {
   return [occur, input]
 }
 
-function loop           (
-  session            ,
-  input          ,
-  sf                               
-)               {
+function loop           (session            , input          , sf                               )               {
   var dispose = input(function (a) {
     var ref = session.step();
     var sample = ref.sample;
@@ -274,17 +268,15 @@ function loop           (
     var _ = ref$1_value[0];
     var nextInput = ref$1_value[1];
     var next = ref$1.next;
-
-    if(nextInput !== input) {
-      dispose()
-      dispose = loop(nextSession, nextInput, next)
-    } else {
-      session = nextSession
-      sf = next
-    }
+    dispose = switchInput(nextSession, nextInput, next, dispose)
   })
 
-  return function () { return dispose(); }
+  return dispose
+}
+
+var switchInput = function (session, input, sf, dispose) {
+  dispose()
+  return loop(session, input, sf)
 }
 
 //      

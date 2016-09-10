@@ -146,8 +146,6 @@ Hold.prototype.step = function step (t    , a )                        {
 
                                      
 
-
-
 // Turn a pair of inputs into an input of pairs
 function both$1       (input1          , input2          )                          {
   return function (f) {

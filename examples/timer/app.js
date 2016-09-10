@@ -46,6 +46,26 @@ Lift.prototype.step = function step$1 (t    , a )                   {
   return step(this.f(a), this)
 };
 
+// first  :: Reactive t a b -> Reactive t [a, c] [b, c]
+// Apply a Reactive transform to the first element of a pair
+function first           (ab                 )                            {
+  return new First(ab)
+}
+
+var First = function First (ab               ) {
+  this.ab = ab
+};
+
+First.prototype.step = function step$2 (t    , ref      )                             {
+    var a = ref[0];
+    var c = ref[1];
+
+  var ref$1 = this.ab.step(t, a);
+    var b = ref$1.value;
+    var next = ref$1.next;
+  return step([b, c], first(next))
+};
+
 // pipe :: (Reactive t a b ... Reactive t y z) -> Reactive t a z
 // Compose many Reactive transformations, left to right
 var pipe = function (ab) {
@@ -221,8 +241,6 @@ Accum.prototype.step = function step (t    , a )                        {
 
                                      
 
-
-
 // Turn a pair of inputs into an input of pairs
 function both$1       (input1          , input2          )                          {
   return function (f) {
@@ -232,39 +250,43 @@ function both$1       (input1          , input2          )                      
   }
 }
 
-//      
-                                                  
-                                  
-                                        
+function newInput     ()                       {
+  var _occur
+  var occur = function (x) {
+    if(typeof _occur === 'function') {
+      _occur(x)
+    }
+  }
 
-                                 
-                                             
- 
+  var input = function (f) {
+    _occur = f
+    return function () {
+      _occur = undefined
+    }
+  }
 
-                                     
-           
-                         
- 
+  return [occur, input]
+}
 
-function run           (
-  r                        ,
-  input          ,
-  session            ,
-  handleOutput               
-)               {
-  return input(function (a) {
+function loop           (session            , input          , sf                               )               {
+  var dispose = input(function (a) {
     var ref = session.step();
     var sample = ref.sample;
     var nextSession = ref.nextSession;
-    session = nextSession
-
-    var ref$1 = r.step(sample, a);
-    var value = ref$1.value;
+    var ref$1 = sf.step(sample, a);
+    var ref$1_value = ref$1.value;
+    var _ = ref$1_value[0];
+    var nextInput = ref$1_value[1];
     var next = ref$1.next;
-    r = next
-
-    return handleOutput(value)
+    dispose = switchInput(nextSession, nextInput, next, dispose)
   })
+
+  return dispose
+}
+
+var switchInput = function (session, input, sf, dispose) {
+  dispose()
+  return loop(session, input, sf)
 }
 
 //      
@@ -296,17 +318,11 @@ ClockSession.prototype.step = function step ()                    {
 };
 
 //      
+                                           
                                     
-/* global EventTarget, Event */
-
-                                                                            
-
-var domInput           = function (name) { return function (node) { return function (f) {
-  node.addEventListener(name, f, false)
-  return function () { return node.removeEventListener(name, f, false); }
-}; }; }
-
-var click = domInput('click')
+function vdomUpdate            (patch                   , init       )                                                  {
+  return first(scan(patch, init))
+}
 
 function interopDefault(ex) {
 	return ex && typeof ex === 'object' && 'default' in ex ? ex['default'] : ex;
@@ -696,6 +712,112 @@ module.exports = {init: init};
 
 var snabbdom$1 = interopDefault(snabbdom);
 
+var eventlisteners = createCommonjsModule(function (module) {
+function invokeHandler(handler, vnode, event) {
+  if (typeof handler === "function") {
+    // call function handler
+    handler.call(vnode, event, vnode);
+  } else if (typeof handler === "object") {
+    // call handler with arguments
+    if (typeof handler[0] === "function") {
+      // special case for single argument for performance
+      if (handler.length === 2) {
+        handler[0].call(vnode, handler[1], event, vnode);
+      } else {
+        var args = handler.slice(1);
+        args.push(event);
+        args.push(vnode);
+        handler[0].apply(vnode, args);
+      }
+    } else {
+      // call multiple handlers
+      for (var i = 0; i < handler.length; i++) {
+        invokeHandler(handler[i]);
+      }
+    }
+  }
+}
+
+function handleEvent(event, vnode) {
+  var name = event.type,
+      on = vnode.data.on;
+
+  // call event handler(s) if exists
+  if (on && on[name]) {
+    invokeHandler(on[name], vnode, event);
+  }
+}
+
+function createListener() {
+  return function handler(event) {
+    handleEvent(event, handler.vnode);
+  }
+}
+
+function updateEventListeners(oldVnode, vnode) {
+  var oldOn = oldVnode.data.on,
+      oldListener = oldVnode.listener,
+      oldElm = oldVnode.elm,
+      on = vnode && vnode.data.on,
+      elm = vnode && vnode.elm,
+      name;
+
+  // optimization for reused immutable handlers
+  if (oldOn === on) {
+    return;
+  }
+
+  // remove existing listeners which no longer used
+  if (oldOn && oldListener) {
+    // if element changed or deleted we remove all existing listeners unconditionally
+    if (!on) {
+      for (name in oldOn) {
+        // remove listener if element was changed or existing listeners removed
+        oldElm.removeEventListener(name, oldListener, false);
+      }
+    } else {
+      for (name in oldOn) {
+        // remove listener if existing listener removed
+        if (!on[name]) {
+          oldElm.removeEventListener(name, oldListener, false);
+        }
+      }
+    }
+  }
+
+  // add new listeners which has not already attached
+  if (on) {
+    // reuse existing listener or create new
+    var listener = vnode.listener = oldVnode.listener || createListener();
+    // update vnode for listener
+    listener.vnode = vnode;
+
+    // if element changed or added we add all needed listeners unconditionally
+    if (!oldOn) {
+      for (name in on) {
+        // add listener if element was changed or new listeners added
+        elm.addEventListener(name, listener, false);
+      }
+    } else {
+      for (name in on) {
+        // add listener if new listener added
+        if (!oldOn[name]) {
+          elm.addEventListener(name, listener, false);
+        }
+      }
+    }
+  }
+}
+
+module.exports = {
+  create: updateEventListeners,
+  update: updateEventListeners,
+  destroy: updateEventListeners
+};
+});
+
+var events = interopDefault(eventlisteners);
+
 var h = createCommonjsModule(function (module) {
 var VNode = interopDefault(require$$1);
 var is = interopDefault(require$$0);
@@ -736,22 +858,39 @@ module.exports = function h(sel, b, c) {
 var h$1 = interopDefault(h);
 
 var container = document.getElementById('app')
+var patch = snabbdom$1.init([events])
 
-var timer = function (ms) { return function (f) {
-  var i = setInterval(f, ms)
-  return function () { return clearInterval(i); }
+// Simple input that fires an event after ms millis
+var after = function (ms) { return function (f) {
+  var handle = setTimeout(f, ms, ms)
+  return function () { return clearTimeout(handle); }
 }; }
 
-var patch = snabbdom$1.init([])
-
-var render = function (count) { return h$1('button', ("Seconds passed: " + count)); }
+// Counter component
+var render = function (count) {
+  var ref = newInput();
+  var click = ref[0];
+  var reset = ref[1];
+  return [
+    h$1('button', { on: { click: click } }, ("Seconds passed: " + count)),
+    both$1(reset, after(1000))
+  ]
+}
 
 var inc = as(function (a) { return a + 1; })
 var reset = as(function () { return 0; })
+var counter = pipe(or(reset, inc), accum(0), lift(render))
 
-var inputs = both$1(timer(1000), click(container.parentElement))
-var counter = pipe(or(inc, reset), accum(0), lift(render), scan(patch, patch(container, render(0))))
+// Render initial UI and get initial inputs
+var ref = render(0);
+var vtree = ref[0];
+var input = ref[1];
 
-run(counter, inputs, clockSession(), function (x) { return console.log(x); })
+// Append vdom updater to counter component
+var update = vdomUpdate(patch, patch(container, vtree))
+var updateCounter = pipe(counter, update)
+
+// Run it
+loop(clockSession(), input, updateCounter)
 
 }());

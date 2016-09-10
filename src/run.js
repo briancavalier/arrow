@@ -29,23 +29,17 @@ export function run <T, A, B> (
   })
 }
 
-export function loop <T, A, B> (
-  session: Session<T>,
-  input: Input<A>,
-  sf: Reactive<T, A, [B, Input<A>]>
-): DisposeInput {
+export function loop <T, A, B> (session: Session<T>, input: Input<A>, sf: Reactive<T, A, [B, Input<A>]>): DisposeInput {
   let dispose = input(a => {
     const { sample, nextSession } = session.step()
     const { value: [_, nextInput], next } = sf.step(sample, a)
-
-    if(nextInput !== input) {
-      dispose()
-      dispose = loop(nextSession, nextInput, next)
-    } else {
-      session = nextSession
-      sf = next
-    }
+    dispose = switchInput(nextSession, nextInput, next, dispose)
   })
 
-  return () => dispose()
+  return dispose
+}
+
+const switchInput = (session, input, sf, dispose) => {
+  dispose()
+  return loop(session, input, sf)
 }

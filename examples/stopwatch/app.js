@@ -246,8 +246,6 @@ Accum.prototype.step = function step (t    , a )                        {
 
                                      
 
-
-
 // Turn a pair of inputs into an input of pairs
 function both$1       (input1          , input2          )                          {
   return function (f) {
@@ -278,26 +276,7 @@ function newInput     ()                       {
   return [occur, input]
 }
 
-                                                         
-                                             
-
-function schedule        (cancel                   , schedule                     )           {
-  return function (f) {
-    var current
-    var onNext = function (x) {
-      current = schedule(onNext)
-      f(x)
-    }
-    current = schedule(onNext)
-    return function () { return cancel(current); }
-  }
-}
-
-function loop           (
-  session            ,
-  input          ,
-  sf                               
-)               {
+function loop           (session            , input          , sf                               )               {
   var dispose = input(function (a) {
     var ref = session.step();
     var sample = ref.sample;
@@ -307,17 +286,15 @@ function loop           (
     var _ = ref$1_value[0];
     var nextInput = ref$1_value[1];
     var next = ref$1.next;
-
-    if(nextInput !== input) {
-      dispose()
-      dispose = loop(nextSession, nextInput, next)
-    } else {
-      session = nextSession
-      sf = next
-    }
+    dispose = switchInput(nextSession, nextInput, next, dispose)
   })
 
-  return function () { return dispose(); }
+  return dispose
+}
+
+var switchInput = function (session, input, sf, dispose) {
+  dispose()
+  return loop(session, input, sf)
 }
 
 //      
@@ -357,7 +334,10 @@ function vdomUpdate            (patch                   , init       )          
 
 //      
                                     
-var animationFrames = schedule(cancelAnimationFrame, requestAnimationFrame)
+var animationFrames = function (f) {
+  var handle = requestAnimationFrame(f)
+  return function () { return cancelAnimationFrame(handle); }
+}
 
 function interopDefault(ex) {
 	return ex && typeof ex === 'object' && 'default' in ex ? ex['default'] : ex;

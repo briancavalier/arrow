@@ -1,24 +1,37 @@
-import { lift, pipe, as, accum, scan, or, bothI, run, clockSession } from '../../src/index'
-import { click } from '../../src/dom'
+import { lift, pipe, as, accum, or, bothI, newInput, clockSession, loop } from '../../src/index'
+import { vdomUpdate } from '../../src/vdom'
 import snabbdom from 'snabbdom'
+import events from 'snabbdom/modules/eventlisteners'
 import h from 'snabbdom/h'
 
 const container = document.getElementById('app')
+const patch = snabbdom.init([events])
 
-const timer = (ms) => (f) => {
-  const i = setInterval(f, ms)
-  return () => clearInterval(i)
+// Simple input that fires an event after ms millis
+const after = ms => f => {
+  const handle = setTimeout(f, ms, ms)
+  return () => clearTimeout(handle)
 }
 
-const patch = snabbdom.init([])
-
-const render = (count) =>
-  h('button', `Seconds passed: ${count}`)
+// Counter component
+const render = (count) => {
+  const [click, reset] = newInput()
+  return [
+    h('button', { on: { click } }, `Seconds passed: ${count}`),
+    bothI(reset, after(1000))
+  ]
+}
 
 const inc = as((a) => a + 1)
 const reset = as(() => 0)
+const counter = pipe(or(reset, inc), accum(0), lift(render))
 
-const inputs = bothI(timer(1000), click(container.parentElement))
-const counter = pipe(or(inc, reset), accum(0), lift(render), scan(patch, patch(container, render(0))))
+// Render initial UI and get initial inputs
+const [vtree, input] = render(0)
 
-run(counter, inputs, clockSession(), x => console.log(x))
+// Append vdom updater to counter component
+const update = vdomUpdate(patch, patch(container, vtree))
+const updateCounter = pipe(counter, update)
+
+// Run it
+loop(clockSession(), input, updateCounter)
