@@ -30,24 +30,22 @@ export function run <T, A, B> (
 }
 
 export function loop <T, A, B> (
-  r: Reactive<T, Evt<A>, B>,
-  input: Input<A>,
   session: Session<T>,
-  handleOutput: (b: B) => ?Evt<A>
+  input: Input<A>,
+  sf: Reactive<T, A, [B, Input<A>]>
 ): DisposeInput {
   let dispose = input(a => {
     const { sample, nextSession } = session.step()
-    session = nextSession
+    const { value: [_, nextInput], next } = sf.step(sample, a)
 
-    const { value, next } = r.step(sample, a)
-    r = next
-
-    const nextInput = handleOutput(value)
-    if(nextInput != null && nextInput !== input) {
+    if(nextInput !== input) {
       dispose()
-      dispose = loop(next, nextInput, nextSession, handleOutput)
+      dispose = loop(nextSession, nextInput, next)
+    } else {
+      session = nextSession
+      sf = next
     }
   })
+
   return () => dispose()
 }
-

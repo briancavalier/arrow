@@ -1,17 +1,6 @@
 (function () {
 'use strict';
 
-//      
-
-// Turn a single value into a pair
-function dup     (a   )         {
-  return pair(a, a)
-}
-
-function pair        (a   , b   )         {
-  return [a, b]
-}
-
 function uncurry           (f                   )                    {
   return function (ref) {
     var a = ref[0];
@@ -52,10 +41,6 @@ function unsplit           (f                   )                       {
   return lift(uncurry(f))
 }
 
-function identity     (a   )    {
-  return a
-}
-
 var Lift = function Lift (f           ) {
   this.f = f
 };
@@ -64,12 +49,30 @@ Lift.prototype.step = function step$1 (t    , a )                   {
   return step(this.f(a), this)
 };
 
-// id :: Reactive t a a
-// Reactive transformation that yields its input at each step
-// TODO: Give this its own type so it can be composed efficiently
-function id     ()                  {
-  return lift(identity)
+// first  :: Reactive t a b -> Reactive t [a, c] [b, c]
+// second :: Reactive t a b -> Reactive t [c, a] [c, b]
+// Apply a Reactive transform to the first element of a pair
+function first           (ab                 )                            {
+  return new First(ab)
 }
+
+// export function second <A, B, C> (ab: ReactiveT<A, B>): ReactiveT<[C, A], [C, B]> {
+//   return first(dimap(swap, swap, ab))
+// }
+
+var First = function First (ab               ) {
+  this.ab = ab
+};
+
+First.prototype.step = function step$2 (t    , ref      )                             {
+    var a = ref[0];
+    var c = ref[1];
+
+  var ref$1 = this.ab.step(t, a);
+    var b = ref$1.value;
+    var next = ref$1.next;
+  return step([b, c], first(next))
+};
 
 // pipe :: (Reactive t a b ... Reactive t y z) -> Reactive t a z
 // Compose many Reactive transformations, left to right
@@ -84,7 +87,6 @@ var pipe = function (ab) {
 // Compose 2 Reactive transformations left to right
 var pipe2 = function (ab, bc) { return new Pipe(ab, bc); }
 
-var lmap = function (fab, bc) { return pipe2(lift(fab), bc); }
 var Pipe = function Pipe (ab, bc) {
   this.ab = ab
   this.bc = bc
@@ -99,11 +101,6 @@ Pipe.prototype.step = function step$4 (t, a) {
     var bc = ref$1.next;
   return step(c, pipe(ab, bc))
 };
-
-// split :: Reactive t a b -> Reactive t a c -> Reactive t [b, c]
-// Duplicates input a and pass it through Reactive transformations
-// ab and ac to yield [b, c]
-var split = function (ab, ac) { return lmap(dup, both(ab, ac)); }
 
 // both :: Reactive t a b -> Reactive t c d -> Reactive [a, b] [c, d]
 // Given an [a, c] input, pass a through Reactive transformation ab and
@@ -302,28 +299,29 @@ function schedule        (cancel                   , schedule                   
 }
 
 function loop           (
-  r                        ,
-  input          ,
   session            ,
-  handleOutput                   
+  input          ,
+  sf                               
 )               {
   var dispose = input(function (a) {
     var ref = session.step();
     var sample = ref.sample;
     var nextSession = ref.nextSession;
-    session = nextSession
-
-    var ref$1 = r.step(sample, a);
-    var value = ref$1.value;
+    var ref$1 = sf.step(sample, a);
+    var ref$1_value = ref$1.value;
+    var _ = ref$1_value[0];
+    var nextInput = ref$1_value[1];
     var next = ref$1.next;
-    r = next
 
-    var nextInput = handleOutput(value)
-    if(nextInput != null && nextInput !== input) {
+    if(nextInput !== input) {
       dispose()
-      dispose = loop(next, nextInput, nextSession, handleOutput)
+      dispose = loop(nextSession, nextInput, next)
+    } else {
+      session = nextSession
+      sf = next
     }
   })
+
   return function () { return dispose(); }
 }
 
@@ -354,6 +352,13 @@ ClockSession.prototype.step = function step ()                    {
   }
   return sessionStep(this.time, new ClockSession(this.start))
 };
+
+//      
+                                           
+                                    
+function vdomUpdate            (patch                   , init       )                                                  {
+  return first(scan(patch, init))
+}
 
 //      
                                     
@@ -957,10 +962,16 @@ var ref$3 = newInput();
 var lap = ref$3[0];
 var lapInput = ref$3[1];
 
+var timerInputs = anyInput(startInput, stopInput, resetInput, lapInput)
+var stoppedInputs = anyInput(timerInputs, never)
+var runningInputs = anyInput(timerInputs, animationFrames)
+
+// Render timer using current time
+// Returns [inputs, vtree]
 var render = function (timer, time) {
   var elapsed = timerElapsed(time, timer)
   var zero = elapsed === 0
-  return h$1('div.timer', { class: { running: timer.running, zero: zero } }, [
+  var vtree = h$1('div.timer', { class: { running: timer.running, zero: zero } }, [
     h$1('div.elapsed', renderDuration(elapsed)),
     h$1('div.lap-elapsed', renderDuration(timerCurrentLap(time, timer))),
     h$1('button.reset', { on: { click: reset }, attrs: { disabled: timer.running || zero } }, 'Reset'),
@@ -975,6 +986,8 @@ var render = function (timer, time) {
   })
     )
   ])
+
+  return [vtree, timer.running ? runningInputs : stoppedInputs]
 }
 
 // Timer formatting
@@ -1026,7 +1039,6 @@ var timerCurrentLap = function (time, ref) {
   return timerTotal(origin, total, time) - timerLastLapEnd(laps);
 }
 var timerElapsed = function (time, ref) {
-  var running = ref.running;
   var origin = ref.origin;
   var total = ref.total;
 
@@ -1046,22 +1058,13 @@ var timer = pipe(anySignal(doStart, doStop, doReset, doLap), accum(timerZero))
 
 // Pair an interactive timer, with the (continuous) current time
 var runTimer = both(timer, time)
+var displayTimer = unsplit(render)
 
-// TODO: This is gross.  Need a better way to support vdom integration
-var tap = function (ab) { return pipe(split(id(), ab), merge()); }
-var displayTimer = tap(pipe(unsplit(render), scan(patch, patch(container, render(timerZero, 0)))));
+var ref$4 = render(timerZero, 0);
+var vtree = ref$4[0];
+var inputs = ref$4[1];
+var updateTimer = pipe(runTimer, displayTimer, vdomUpdate(patch, patch(container, vtree)))
 
-var update = pipe(runTimer, displayTimer)
-
-var timerInputs = anyInput(startInput, stopInput, resetInput, lapInput)
-var stoppedInputs = anyInput(timerInputs, never)
-var runningInputs = anyInput(timerInputs, animationFrames)
-
-loop(update, stoppedInputs, clockSession(),
-  function (ref) {
-    var running = ref[0].running;
-
-    return running ? runningInputs : stoppedInputs;
-})
+loop(clockSession(), inputs, updateTimer)
 
 }());

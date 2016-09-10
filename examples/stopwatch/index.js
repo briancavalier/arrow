@@ -1,4 +1,5 @@
-import { newInput, never, time, id, split, merge, mapE, or, both, eventTime, unsplit, pipe, scan, accum, clockSession, bothI, loop } from '../../src/index'
+import { newInput, never, time, mapE, or, both, eventTime, unsplit, pipe, accum, clockSession, bothI, loop } from '../../src/index'
+import { vdomUpdate } from '../../src/vdom'
 import { animationFrames } from '../../src/dom'
 import snabbdom from 'snabbdom'
 import events from 'snabbdom/modules/eventlisteners'
@@ -18,10 +19,16 @@ const [stop, stopInput] = newInput()
 const [reset, resetInput] = newInput()
 const [lap, lapInput] = newInput()
 
+const timerInputs = anyInput(startInput, stopInput, resetInput, lapInput)
+const stoppedInputs = anyInput(timerInputs, never)
+const runningInputs = anyInput(timerInputs, animationFrames)
+
+// Render timer using current time
+// Returns [inputs, vtree]
 const render = (timer, time) => {
   const elapsed = timerElapsed(time, timer)
   const zero = elapsed === 0
-  return h('div.timer', { class: { running: timer.running, zero } }, [
+  const vtree = h('div.timer', { class: { running: timer.running, zero } }, [
     h('div.elapsed', renderDuration(elapsed)),
     h('div.lap-elapsed', renderDuration(timerCurrentLap(time, timer))),
     h('button.reset', { on: { click: reset }, attrs: { disabled: timer.running || zero } }, 'Reset'),
@@ -32,6 +39,8 @@ const render = (timer, time) => {
       h('li', renderDuration(end - start)))
     )
   ])
+
+  return [vtree, timer.running ? runningInputs : stoppedInputs]
 }
 
 // Timer formatting
@@ -60,7 +69,7 @@ const timerLap = time => ({ running, origin, total, laps }) =>
 const timerAddLap = (end, laps) => [{ start: timerLastLapEnd(laps), end }].concat(laps)
 const timerLastLapEnd = laps => laps.length === 0 ? 0 : laps[0].end
 const timerCurrentLap = (time, { running, origin, total, laps }) => timerTotal(origin, total, time) - timerLastLapEnd(laps)
-const timerElapsed = (time, { running, origin, total }) => timerTotal(origin, total, time)
+const timerElapsed = (time, { origin, total }) => timerTotal(origin, total, time)
 const timerTotal = (origin, total, time) => total + (time - origin)
 
 // Timer events, each tagged with its occurrence time
@@ -75,16 +84,9 @@ const timer = pipe(anySignal(doStart, doStop, doReset, doLap), accum(timerZero))
 
 // Pair an interactive timer, with the (continuous) current time
 const runTimer = both(timer, time)
+const displayTimer = unsplit(render)
 
-// TODO: This is gross.  Need a better way to support vdom integration
-const tap = ab => pipe(split(id(), ab), merge())
-const displayTimer = tap(pipe(unsplit(render), scan(patch, patch(container, render(timerZero, 0)))));
+const [vtree, inputs] = render(timerZero, 0)
+const updateTimer = pipe(runTimer, displayTimer, vdomUpdate(patch, patch(container, vtree)))
 
-const update = pipe(runTimer, displayTimer)
-
-const timerInputs = anyInput(startInput, stopInput, resetInput, lapInput)
-const stoppedInputs = anyInput(timerInputs, never)
-const runningInputs = anyInput(timerInputs, animationFrames)
-
-loop(update, stoppedInputs, clockSession(),
-  ([{ running }]) => running ? runningInputs : stoppedInputs)
+loop(clockSession(), inputs, updateTimer)
