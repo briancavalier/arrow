@@ -77,19 +77,15 @@ export function id <A> (): ReactiveT<A, A> {
 }
 
 // first  :: Reactive t a b -> Reactive t [a, c] [b, c]
-// second :: Reactive t a b -> Reactive t [c, a] [c, b]
 // Apply a Reactive transform to the first element of a pair
 export function first <A, B, C> (ab: ReactiveT<A, B>): ReactiveT<[A, C], [B, C]> {
   return new First(ab)
 }
 
+// second :: Reactive t a b -> Reactive t [c, a] [c, b]
 export function second <A, B, C> (ab: ReactiveT<A, B>): ReactiveT<[C, A], [C, B]> {
   return dimap(swap, swap, first(ab))
 }
-
-// export function second <A, B, C> (ab: ReactiveT<A, B>): ReactiveT<[C, A], [C, B]> {
-//   return first(dimap(swap, swap, ab))
-// }
 
 class First<A, B, C> {
   ab: ReactiveT<A, B>
