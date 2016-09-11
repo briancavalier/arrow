@@ -1,13 +1,13 @@
 (function () {
 'use strict';
 
-function uncurry           (f                   )                    {
+function uncurry(f) {
   return function (ref) {
     var a = ref[0];
     var b = ref[1];
 
     return f(a, b);
-  }
+  };
 }
 
 //      
@@ -25,45 +25,45 @@ function uncurry           (f                   )                    {
 
 // step :: b -> Reactive t a b -> Step t a b
 // Simple helper to construct a Step
-var step = function (value, next) { return ({ value: value, next: next }); }
+var step = function (value, next) { return ({ value: value, next: next }); };
 
 // lift :: (a -> b) -> Reactive t a b
 // Lift a function into a Reactive transform
-function lift        (f             )                  {
-  return new Lift(f)
+function lift(f) {
+  return new Lift(f);
 }
 
 // unsplit :: (a -> b -> c) -> Reactive t [a, b] c
-function unsplit           (f                   )                       {
-  return lift(uncurry(f))
+function unsplit(f) {
+  return lift(uncurry(f));
 }
 
-var Lift = function Lift (f           ) {
-  this.f = f
+var Lift = function Lift(f) {
+  this.f = f;
 };
 
-Lift.prototype.step = function step$1 (t    , a )                   {
-  return step(this.f(a), this)
+Lift.prototype.step = function step$1 (t, a) {
+  return step(this.f(a), this);
 };
 
 // first  :: Reactive t a b -> Reactive t [a, c] [b, c]
 // Apply a Reactive transform to the first element of a pair
-function first           (ab                 )                            {
-  return new First(ab)
+function first(ab) {
+  return new First(ab);
 }
 
-var First = function First (ab               ) {
-  this.ab = ab
+var First = function First(ab) {
+  this.ab = ab;
 };
 
-First.prototype.step = function step$2 (t    , ref      )                             {
+First.prototype.step = function step$2 (t, ref) {
     var a = ref[0];
     var c = ref[1];
 
   var ref$1 = this.ab.step(t, a);
     var b = ref$1.value;
     var next = ref$1.next;
-  return step([b, c], first(next))
+  return step([b, c], first(next));
 };
 
 // pipe :: (Reactive t a b ... Reactive t y z) -> Reactive t a z
@@ -73,15 +73,15 @@ var pipe = function (ab) {
   while ( len-- > 0 ) rest[ len ] = arguments[ len + 1 ];
 
   return rest.reduce(pipe2, ab);
-}
+};
 
 // pipe2 :: Reactive t a b -> Reactive t b c -> Reactive t a c
 // Compose 2 Reactive transformations left to right
-var pipe2 = function (ab, bc) { return new Pipe(ab, bc); }
+var pipe2 = function (ab, bc) { return new Pipe(ab, bc); };
 
-var Pipe = function Pipe (ab, bc) {
-  this.ab = ab
-  this.bc = bc
+var Pipe = function Pipe(ab, bc) {
+  this.ab = ab;
+  this.bc = bc;
 };
 
 Pipe.prototype.step = function step$4 (t, a) {
@@ -91,17 +91,17 @@ Pipe.prototype.step = function step$4 (t, a) {
   var ref$1 = this.bc.step(t, b);
     var c = ref$1.value;
     var bc = ref$1.next;
-  return step(c, pipe(ab, bc))
+  return step(c, pipe(ab, bc));
 };
 
 // both :: Reactive t a b -> Reactive t c d -> Reactive [a, b] [c, d]
 // Given an [a, c] input, pass a through Reactive transformation ab and
 // c through Reactive transformation cd to yield [b, d]
-var both = function (ab, cd) { return new Both(ab, cd); }
+var both = function (ab, cd) { return new Both(ab, cd); };
 
-var Both = function Both (ab, cd) {
-  this.ab = ab
-  this.cd = cd
+var Both = function Both(ab, cd) {
+  this.ab = ab;
+  this.cd = cd;
 };
 
 Both.prototype.step = function step$5 (t, ref) {
@@ -114,151 +114,149 @@ Both.prototype.step = function step$5 (t, ref) {
   var ref$2 = this.cd.step(t, c);
     var d = ref$2.value;
     var cnext = ref$2.next;
-  return step([b, d], both(anext, cnext))
+  return step([b, d], both(anext, cnext));
 };
 
 //      
-                                                               
+
 // An event, which has a value when it occurs, and
 // has no value when it doesn't occur
-                             
+
 
 // Event non-occurrence
-var NoEvent = undefined
+var NoEvent = undefined;
 
 // Turn Events of A instead Events of B
-function map        (f             )                        {
-  return function (a) { return a === undefined ? a : f(a); }
+function map(f) {
+  return function (a) { return a === undefined ? a : f(a); };
 }
 
 // Return the Event that occurred, preferring a1 if both occurred
-function mergeE     (a1        , a2        )         {
-  return a1 === undefined ? a2 : a1
+function mergeE(a1, a2) {
+  return a1 === undefined ? a2 : a1;
 }
 
 // Internal helper to allow continuous value transformations to be
 // applied when an event occurs
 // TODO: Consider exposing this if it seems useful
-function liftE        (ab                 )                            {
-  return new LiftE(ab)
+function liftE(ab) {
+  return new LiftE(ab);
 }
 
-var LiftE = function LiftE (ab) {
-  this.ab = ab
+var LiftE = function LiftE(ab) {
+  this.ab = ab;
 };
 
-LiftE.prototype.step = function step (t    , a      )                             {
-  if(a === undefined) {
-    return { value: NoEvent, next: this }
+LiftE.prototype.step = function step (t, a) {
+  if (a === undefined) {
+    return { value: NoEvent, next: this };
   }
   var ref = this.ab.step(t, a);
     var value = ref.value;
     var next = ref.next;
-  return { value: value, next: liftE(next) }
+  return { value: value, next: liftE(next) };
 };
 
 // Transform event values
-function mapE        (f             )                            {
-  return lift(map(f))
+function mapE(f) {
+  return lift(map(f));
 }
 
 // When an event occurs, make its value b
-function as        (b   )                            {
-  return mapE(function (_) { return b; })
+function as(b) {
+  return mapE(function (_) { return b; });
 }
 
 // Merge events, preferring the left in the case of
 // simultaneous occurrence
-function merge     ()                                      {
-  return unsplit(mergeE)
+function merge() {
+  return unsplit(mergeE);
 }
 
-function or        (left                           , right                           )                            {
-  return liftE(pipe(both(left, right), merge()))
+function or(left, right) {
+  return liftE(pipe(both(left, right), merge()));
 }
 
 // Turn an event into a stepped continuous value
-function hold     (initial   )                       {
-  return new Hold(initial)
+function hold(initial) {
+  return new Hold(initial);
 }
 
-var Hold = function Hold (value ) {
-  this.value = value
+var Hold = function Hold(value) {
+  this.value = value;
 };
 
-Hold.prototype.step = function step (t    , a )                        {
-  if(a === undefined) {
-    return { value: this.value, next: this }
+Hold.prototype.step = function step (t, a) {
+  if (a === undefined) {
+    return { value: this.value, next: this };
   }
-  return { value: a, next: hold(a) }
+  return { value: a, next: hold(a) };
 };
 
 // Accumulate event
-function scanE        (f                   , initial   )                            {
-  return new Accum(f, initial)
+function scanE(f, initial) {
+  return new Accum(f, initial);
 }
 
 // Accumulate event to a continuous value
-function scan        (f                   , initial   )                       {
-  return pipe(scanE(f, initial), hold(initial))
+function scan(f, initial) {
+  return pipe(scanE(f, initial), hold(initial));
 }
 
-var Accum = function Accum(f                 , value ) {
-  this.f = f
-  this.value = value
+var Accum = function Accum(f, value) {
+  this.f = f;
+  this.value = value;
 };
 
-Accum.prototype.step = function step (t    , a )                        {
-  if(a === undefined) {
-    return { value: NoEvent, next: this }
+Accum.prototype.step = function step (t, a) {
+  if (a === undefined) {
+    return { value: NoEvent, next: this };
   }
-  var f = this.f
-  var value = f(this.value, a)
-  return { value: value, next: new Accum(f, value) }
+  var f = this.f;
+  var value = f(this.value, a);
+  return { value: value, next: new Accum(f, value) };
 };
 
 //      
-                                  
+
 // Dispose an Input
-                                    
+
 
 // Handle input events
-                                          
+
 
 // An Input allows events to be pushed into the system
 // It's basically any unary higher order function
-                                                                
 
-                                     
 
 // Turn a pair of inputs into an input of pairs
-function both$1       (input1          , input2          )                          {
+function both$1(input1, input2) {
   return function (f) {
-    var dispose1 = input1(function (a1) { return f([a1, NoEvent]); })
-    var dispose2 = input2(function (a2) { return f([NoEvent, a2]); })
-    return function () { return [dispose1(), dispose2()]; }
-  }
+    var dispose1 = input1(function (a1) { return f([a1, NoEvent]); });
+    var dispose2 = input2(function (a2) { return f([NoEvent, a2]); });
+    return function () { return [dispose1(), dispose2()]; };
+  };
 }
 
-function newInput     ()                       {
-  var _occur
+function newInput() {
+  var _occur;
   var occur = function (x) {
-    if(typeof _occur === 'function') {
-      _occur(x)
+    if (typeof _occur === 'function') {
+      _occur(x);
     }
-  }
+  };
 
   var input = function (f) {
-    _occur = f
+    _occur = f;
     return function () {
-      _occur = undefined
-    }
-  }
+      _occur = undefined;
+    };
+  };
 
-  return [occur, input]
+  return [occur, input];
 }
 
-function loop           (session            , input          , sf                               )               {
+function loop(session, input, sf) {
   var dispose = input(function (a) {
     var ref = session.step();
     var sample = ref.sample;
@@ -268,50 +266,46 @@ function loop           (session            , input          , sf               
     var _ = ref$1_value[0];
     var nextInput = ref$1_value[1];
     var next = ref$1.next;
-    dispose = switchInput(nextSession, nextInput, next, dispose)
-  })
+    dispose = switchInput(nextSession, nextInput, next, dispose);
+  });
 
-  return dispose
+  return dispose;
 }
 
 var switchInput = function (session, input, sf, dispose) {
-  dispose()
-  return loop(session, input, sf)
-}
+  dispose();
+  return loop(session, input, sf);
+};
 
 //      
 
 // A session provides a sample of state that will be fed into
 // the system when events occur
-                          
-                            
- 
 
-                                                                   
 
-var sessionStep = function (sample, nextSession) { return ({ sample: sample, nextSession: nextSession }); }
+var sessionStep = function (sample, nextSession) { return ({ sample: sample, nextSession: nextSession }); };
 
 // Session that yields a time delta from its start time at each step
-var clockSession = function ()                  { return new ClockSession(Date.now()); }
+var clockSession = function () { return new ClockSession(Date.now()); };
 
-var ClockSession = function ClockSession (start      ) {
-  this.start = start
-  this.time = Infinity
+var ClockSession = function ClockSession(start) {
+  this.start = start;
+  this.time = Infinity;
 };
 
-ClockSession.prototype.step = function step ()                    {
-  var t = Date.now()
+ClockSession.prototype.step = function step () {
+  var t = Date.now();
   if (t < this.time) {
-    this.time = t - this.start
+    this.time = t - this.start;
   }
-  return sessionStep(this.time, new ClockSession(this.start))
+  return sessionStep(this.time, new ClockSession(this.start));
 };
 
 //      
-                                           
-                                    
-function vdomUpdate            (patch                   , init       )                                                  {
-  return first(scan(patch, init))
+
+
+function vdomUpdate(patch, init) {
+  return first(scan(patch, init));
 }
 
 function interopDefault(ex) {
@@ -323,10 +317,10 @@ function createCommonjsModule(fn, module) {
 }
 
 var vnode = createCommonjsModule(function (module) {
-module.exports = function(sel, data, children, text, elm) {
+module.exports = function (sel, data, children, text, elm) {
   var key = data === undefined ? undefined : data.key;
-  return {sel: sel, data: data, children: children,
-          text: text, elm: elm, key: key};
+  return { sel: sel, data: data, children: children,
+    text: text, elm: elm, key: key };
 };
 });
 
@@ -340,7 +334,9 @@ var require$$1 = Object.freeze({
 var is = createCommonjsModule(function (module) {
 module.exports = {
   array: Array.isArray,
-  primitive: function(s) { return typeof s === 'string' || typeof s === 'number'; },
+  primitive: function (s) {
+    return typeof s === 'string' || typeof s === 'number';
+  }
 };
 });
 
@@ -355,45 +351,43 @@ var require$$0 = Object.freeze({
 });
 
 var htmldomapi = createCommonjsModule(function (module) {
-function createElement(tagName){
+function createElement(tagName) {
   return document.createElement(tagName);
 }
 
-function createElementNS(namespaceURI, qualifiedName){
+function createElementNS(namespaceURI, qualifiedName) {
   return document.createElementNS(namespaceURI, qualifiedName);
 }
 
-function createTextNode(text){
+function createTextNode(text) {
   return document.createTextNode(text);
 }
 
-
-function insertBefore(parentNode, newNode, referenceNode){
+function insertBefore(parentNode, newNode, referenceNode) {
   parentNode.insertBefore(newNode, referenceNode);
 }
 
-
-function removeChild(node, child){
+function removeChild(node, child) {
   node.removeChild(child);
 }
 
-function appendChild(node, child){
+function appendChild(node, child) {
   node.appendChild(child);
 }
 
-function parentNode(node){
+function parentNode(node) {
   return node.parentElement;
 }
 
-function nextSibling(node){
+function nextSibling(node) {
   return node.nextSibling;
 }
 
-function tagName(node){
+function tagName(node) {
   return node.tagName;
 }
 
-function setTextContent(node, text){
+function setTextContent(node, text) {
   node.textContent = text;
 }
 
@@ -446,8 +440,12 @@ var VNode = interopDefault(require$$1);
 var is = interopDefault(require$$0);
 var domApi = interopDefault(require$$0$1);
 
-function isUndef(s) { return s === undefined; }
-function isDef(s) { return s !== undefined; }
+function isUndef(s) {
+  return s === undefined;
+}
+function isDef(s) {
+  return s !== undefined;
+}
 
 var emptyNode = VNode('', {}, [], undefined, undefined);
 
@@ -456,7 +454,9 @@ function sameVnode(vnode1, vnode2) {
 }
 
 function createKeyToOldIdx(children, beginIdx, endIdx) {
-  var i, map = {}, key;
+  var i,
+      map = {},
+      key;
   for (i = beginIdx; i <= endIdx; ++i) {
     key = children[i].key;
     if (isDef(key)) map[key] = i;
@@ -467,7 +467,9 @@ function createKeyToOldIdx(children, beginIdx, endIdx) {
 var hooks = ['create', 'update', 'remove', 'destroy', 'pre', 'post'];
 
 function init(modules, api) {
-  var i, j, cbs = {};
+  var i,
+      j,
+      cbs = {};
 
   if (isUndef(api)) api = domApi;
 
@@ -485,7 +487,7 @@ function init(modules, api) {
   }
 
   function createRmCb(childElm, listeners) {
-    return function() {
+    return function () {
       if (--listeners === 0) {
         var parent = api.parentNode(childElm);
         api.removeChild(parent, childElm);
@@ -494,14 +496,17 @@ function init(modules, api) {
   }
 
   function createElm(vnode, insertedVnodeQueue) {
-    var i, data = vnode.data;
+    var i,
+        data = vnode.data;
     if (isDef(data)) {
       if (isDef(i = data.hook) && isDef(i = i.init)) {
         i(vnode);
         data = vnode.data;
       }
     }
-    var elm, children = vnode.children, sel = vnode.sel;
+    var elm,
+        children = vnode.children,
+        sel = vnode.sel;
     if (isDef(sel)) {
       // Parse selector
       var hashIdx = sel.indexOf('#');
@@ -509,8 +514,7 @@ function init(modules, api) {
       var hash = hashIdx > 0 ? hashIdx : sel.length;
       var dot = dotIdx > 0 ? dotIdx : sel.length;
       var tag = hashIdx !== -1 || dotIdx !== -1 ? sel.slice(0, Math.min(hash, dot)) : sel;
-      elm = vnode.elm = isDef(data) && isDef(i = data.ns) ? api.createElementNS(i, tag)
-                                                          : api.createElement(tag);
+      elm = vnode.elm = isDef(data) && isDef(i = data.ns) ? api.createElementNS(i, tag) : api.createElement(tag);
       if (hash < dot) elm.id = sel.slice(hash + 1, dot);
       if (dotIdx > 0) elm.className = sel.slice(dot + 1).replace(/\./g, ' ');
       if (is.array(children)) {
@@ -539,7 +543,9 @@ function init(modules, api) {
   }
 
   function invokeDestroyHook(vnode) {
-    var i, j, data = vnode.data;
+    var i,
+        j,
+        data = vnode.data;
     if (isDef(data)) {
       if (isDef(i = data.hook) && isDef(i = i.destroy)) i(vnode);
       for (i = 0; i < cbs.destroy.length; ++i) cbs.destroy[i](vnode);
@@ -553,7 +559,10 @@ function init(modules, api) {
 
   function removeVnodes(parentElm, vnodes, startIdx, endIdx) {
     for (; startIdx <= endIdx; ++startIdx) {
-      var i, listeners, rm, ch = vnodes[startIdx];
+      var i,
+          listeners,
+          rm,
+          ch = vnodes[startIdx];
       if (isDef(ch)) {
         if (isDef(ch.sel)) {
           invokeDestroyHook(ch);
@@ -565,7 +574,8 @@ function init(modules, api) {
           } else {
             rm();
           }
-        } else { // Text node
+        } else {
+          // Text node
           api.removeChild(parentElm, ch.elm);
         }
       }
@@ -573,7 +583,8 @@ function init(modules, api) {
   }
 
   function updateChildren(parentElm, oldCh, newCh, insertedVnodeQueue) {
-    var oldStartIdx = 0, newStartIdx = 0;
+    var oldStartIdx = 0,
+        newStartIdx = 0;
     var oldEndIdx = oldCh.length - 1;
     var oldStartVnode = oldCh[0];
     var oldEndVnode = oldCh[oldEndIdx];
@@ -595,12 +606,14 @@ function init(modules, api) {
         patchVnode(oldEndVnode, newEndVnode, insertedVnodeQueue);
         oldEndVnode = oldCh[--oldEndIdx];
         newEndVnode = newCh[--newEndIdx];
-      } else if (sameVnode(oldStartVnode, newEndVnode)) { // Vnode moved right
+      } else if (sameVnode(oldStartVnode, newEndVnode)) {
+        // Vnode moved right
         patchVnode(oldStartVnode, newEndVnode, insertedVnodeQueue);
         api.insertBefore(parentElm, oldStartVnode.elm, api.nextSibling(oldEndVnode.elm));
         oldStartVnode = oldCh[++oldStartIdx];
         newEndVnode = newCh[--newEndIdx];
-      } else if (sameVnode(oldEndVnode, newStartVnode)) { // Vnode moved left
+      } else if (sameVnode(oldEndVnode, newStartVnode)) {
+        // Vnode moved left
         patchVnode(oldEndVnode, newStartVnode, insertedVnodeQueue);
         api.insertBefore(parentElm, oldEndVnode.elm, oldStartVnode.elm);
         oldEndVnode = oldCh[--oldEndIdx];
@@ -608,7 +621,8 @@ function init(modules, api) {
       } else {
         if (isUndef(oldKeyToIdx)) oldKeyToIdx = createKeyToOldIdx(oldCh, oldStartIdx, oldEndIdx);
         idxInOld = oldKeyToIdx[newStartVnode.key];
-        if (isUndef(idxInOld)) { // New element
+        if (isUndef(idxInOld)) {
+          // New element
           api.insertBefore(parentElm, createElm(newStartVnode, insertedVnodeQueue), oldStartVnode.elm);
           newStartVnode = newCh[++newStartIdx];
         } else {
@@ -621,7 +635,7 @@ function init(modules, api) {
       }
     }
     if (oldStartIdx > oldEndIdx) {
-      before = isUndef(newCh[newEndIdx+1]) ? null : newCh[newEndIdx+1].elm;
+      before = isUndef(newCh[newEndIdx + 1]) ? null : newCh[newEndIdx + 1].elm;
       addVnodes(parentElm, before, newCh, newStartIdx, newEndIdx, insertedVnodeQueue);
     } else if (newStartIdx > newEndIdx) {
       removeVnodes(parentElm, oldCh, oldStartIdx, oldEndIdx);
@@ -633,7 +647,9 @@ function init(modules, api) {
     if (isDef(i = vnode.data) && isDef(hook = i.hook) && isDef(i = hook.prepatch)) {
       i(oldVnode, vnode);
     }
-    var elm = vnode.elm = oldVnode.elm, oldCh = oldVnode.children, ch = vnode.children;
+    var elm = vnode.elm = oldVnode.elm,
+        oldCh = oldVnode.children,
+        ch = vnode.children;
     if (oldVnode === vnode) return;
     if (!sameVnode(oldVnode, vnode)) {
       var parentElm = api.parentNode(oldVnode.elm);
@@ -666,7 +682,7 @@ function init(modules, api) {
     }
   }
 
-  return function(oldVnode, vnode) {
+  return function (oldVnode, vnode) {
     var i, elm, parent;
     var insertedVnodeQueue = [];
     for (i = 0; i < cbs.pre.length; ++i) cbs.pre[i]();
@@ -697,7 +713,7 @@ function init(modules, api) {
   };
 }
 
-module.exports = {init: init};
+module.exports = { init: init };
 });
 
 var snabbdom$1 = interopDefault(snabbdom);
@@ -741,7 +757,7 @@ function handleEvent(event, vnode) {
 function createListener() {
   return function handler(event) {
     handleEvent(event, handler.vnode);
-  }
+  };
 }
 
 function updateEventListeners(oldVnode, vnode) {
@@ -808,7 +824,81 @@ module.exports = {
 
 var events = interopDefault(eventlisteners);
 
-var h = createCommonjsModule(function (module) {
+var attributes = createCommonjsModule(function (module) {
+var booleanAttrs = ["allowfullscreen", "async", "autofocus", "autoplay", "checked", "compact", "controls", "declare", "default", "defaultchecked", "defaultmuted", "defaultselected", "defer", "disabled", "draggable", "enabled", "formnovalidate", "hidden", "indeterminate", "inert", "ismap", "itemscope", "loop", "multiple", "muted", "nohref", "noresize", "noshade", "novalidate", "nowrap", "open", "pauseonexit", "readonly", "required", "reversed", "scoped", "seamless", "selected", "sortable", "spellcheck", "translate", "truespeed", "typemustmatch", "visible"];
+
+var booleanAttrsDict = {};
+for (var i = 0, len = booleanAttrs.length; i < len; i++) {
+  booleanAttrsDict[booleanAttrs[i]] = true;
+}
+
+function updateAttrs(oldVnode, vnode) {
+  var key,
+      cur,
+      old,
+      elm = vnode.elm,
+      oldAttrs = oldVnode.data.attrs,
+      attrs = vnode.data.attrs;
+
+  if (!oldAttrs && !attrs) return;
+  oldAttrs = oldAttrs || {};
+  attrs = attrs || {};
+
+  // update modified attributes, add new attributes
+  for (key in attrs) {
+    cur = attrs[key];
+    old = oldAttrs[key];
+    if (old !== cur) {
+      // TODO: add support to namespaced attributes (setAttributeNS)
+      if (!cur && booleanAttrsDict[key]) elm.removeAttribute(key);else elm.setAttribute(key, cur);
+    }
+  }
+  //remove removed attributes
+  // use `in` operator since the previous `for` iteration uses it (.i.e. add even attributes with undefined value)
+  // the other option is to remove all attributes with value == undefined
+  for (key in oldAttrs) {
+    if (!(key in attrs)) {
+      elm.removeAttribute(key);
+    }
+  }
+}
+
+module.exports = { create: updateAttrs, update: updateAttrs };
+});
+
+interopDefault(attributes);
+
+var _class = createCommonjsModule(function (module) {
+function updateClass(oldVnode, vnode) {
+  var cur,
+      name,
+      elm = vnode.elm,
+      oldClass = oldVnode.data.class,
+      klass = vnode.data.class;
+
+  if (!oldClass && !klass) return;
+  oldClass = oldClass || {};
+  klass = klass || {};
+
+  for (name in oldClass) {
+    if (!klass[name]) {
+      elm.classList.remove(name);
+    }
+  }
+  for (name in klass) {
+    cur = klass[name];
+    if (cur !== oldClass[name]) {
+      elm.classList[cur ? 'add' : 'remove'](name);
+    }
+  }
+}
+
+module.exports = { create: updateClass, update: updateClass };
+});
+
+interopDefault(_class);
+
+var h$1 = createCommonjsModule(function (module) {
 var VNode = interopDefault(require$$1);
 var is = interopDefault(require$$0);
 
@@ -823,15 +913,25 @@ function addNS(data, children, sel) {
 }
 
 module.exports = function h(sel, b, c) {
-  var data = {}, children, text, i;
+  var data = {},
+      children,
+      text,
+      i;
   if (c !== undefined) {
     data = b;
-    if (is.array(c)) { children = c; }
-    else if (is.primitive(c)) { text = c; }
+    if (is.array(c)) {
+      children = c;
+    } else if (is.primitive(c)) {
+      text = c;
+    }
   } else if (b !== undefined) {
-    if (is.array(b)) { children = b; }
-    else if (is.primitive(b)) { text = b; }
-    else { data = b; }
+    if (is.array(b)) {
+      children = b;
+    } else if (is.primitive(b)) {
+      text = b;
+    } else {
+      data = b;
+    }
   }
   if (is.array(children)) {
     for (i = 0; i < children.length; ++i) {
@@ -845,11 +945,72 @@ module.exports = function h(sel, b, c) {
 };
 });
 
-var h$1 = interopDefault(h);
+var sh = interopDefault(h$1);
+
+var index = createCommonjsModule(function (module, exports) {
+'use strict';
+
+Object.defineProperty(exports, '__esModule', {
+  value: true
+});
+var isValidString = function isValidString(param) {
+  return typeof param === 'string' && param.length > 0;
+};
+
+var startsWith = function startsWith(string, start) {
+  return string[0] === start;
+};
+
+var isSelector = function isSelector(param) {
+  return isValidString(param) && (startsWith(param, '.') || startsWith(param, '#'));
+};
+
+var node = function node(h) {
+  return function (tagName) {
+    return function (first) {
+      var arguments$1 = arguments;
+
+      for (var _len = arguments.length, rest = Array(_len > 1 ? _len - 1 : 0), _key = 1; _key < _len; _key++) {
+        rest[_key - 1] = arguments$1[_key];
+      }
+
+      if (isSelector(first)) {
+        return h.apply(undefined, [tagName + first].concat(rest));
+      } else if (typeof first === 'undefined') {
+        return h(tagName);
+      } else {
+        return h.apply(undefined, [tagName, first].concat(rest));
+      }
+    };
+  };
+};
+
+var TAG_NAMES = ['a', 'abbr', 'acronym', 'address', 'applet', 'area', 'article', 'aside', 'audio', 'b', 'base', 'basefont', 'bdi', 'bdo', 'bgsound', 'big', 'blink', 'blockquote', 'body', 'br', 'button', 'canvas', 'caption', 'center', 'cite', 'code', 'col', 'colgroup', 'command', 'content', 'data', 'datalist', 'dd', 'del', 'details', 'dfn', 'dialog', 'dir', 'div', 'dl', 'dt', 'element', 'em', 'embed', 'fieldset', 'figcaption', 'figure', 'font', 'footer', 'form', 'frame', 'frameset', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'head', 'header', 'hgroup', 'hr', 'html', 'i', 'iframe', 'image', 'img', 'input', 'ins', 'isindex', 'kbd', 'keygen', 'label', 'legend', 'li', 'link', 'listing', 'main', 'map', 'mark', 'marquee', 'math', 'menu', 'menuitem', 'meta', 'meter', 'multicol', 'nav', 'nextid', 'nobr', 'noembed', 'noframes', 'noscript', 'object', 'ol', 'optgroup', 'option', 'output', 'p', 'param', 'picture', 'plaintext', 'pre', 'progress', 'q', 'rb', 'rbc', 'rp', 'rt', 'rtc', 'ruby', 's', 'samp', 'script', 'section', 'select', 'shadow', 'small', 'source', 'spacer', 'span', 'strike', 'strong', 'style', 'sub', 'summary', 'sup', 'svg', 'table', 'tbody', 'td', 'template', 'textarea', 'tfoot', 'th', 'thead', 'time', 'title', 'tr', 'track', 'tt', 'u', 'ul', 'var', 'video', 'wbr', 'xmp'];
+
+exports['default'] = function (h) {
+  var createTag = node(h);
+  var exported = { TAG_NAMES: TAG_NAMES, isSelector: isSelector, createTag: createTag };
+  TAG_NAMES.forEach(function (n) {
+    exported[n] = createTag(n);
+  });
+  return exported;
+};
+
+module.exports = exports['default'];
+});
+
+var hh = interopDefault(index);
+
+var init = snabbdom$1.init;
+var h = hh(sh);
 
 //      
-var container = document.getElementById('app')
-var patch = snabbdom$1.init([events])
+var div = h.div;
+var p = h.p;
+var button = h.button;
+
+var container = document.getElementById('app');
+var patch = init([events]);
 
 var ref = newInput();
 var inc = ref[0];
@@ -858,21 +1019,17 @@ var ref$1 = newInput();
 var dec = ref$1[0];
 var decInput = ref$1[1];
 
-var render = function (value) { return [h$1('div#app', [
-    h$1('p', value),
-    h$1('button', { on: { click: dec } }, '-'),
-    h$1('button', { on: { click: inc } }, '+')
-  ]), both$1(incInput, decInput)]; }
+var render = function (value) { return [div('#app', [p(value), button({ on: { click: dec } }, '-'), button({ on: { click: inc } }, '+')]), both$1(incInput, decInput)]; };
 
-var add = function (a, b) { return a + b; }
-var counter = pipe(or(as(1), as(-1)), scan(add, 0))
+var add = function (a, b) { return a + b; };
+var counter = or(as(1), as(-1)) >> scan(add, 0);
 
 var ref$2 = render(0);
 var vtree = ref$2[0];
 var inputs = ref$2[1];
-var update = vdomUpdate(patch, patch(container, vtree));
-var runCounter = pipe(counter, lift(render), update)
+var showCounter = vdomUpdate(patch, patch(container, vtree));
+var runCounter = counter >> lift(render) >> showCounter;
 
-loop(clockSession(), inputs, runCounter)
+loop(clockSession(), inputs, runCounter);
 
 }());
