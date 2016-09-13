@@ -1,19 +1,10 @@
 // @flow
 import type { Input, DisposeInput } from './input'
-import type { Evt } from './event'
+import type { SignalFunc } from './signal'
 import type { Session } from './session'
 
-export type Reactive<T, A, B> = {
-  step: (t: T, a: A) => ReactiveStep<T, A, B>
-}
-
-export type ReactiveStep<T, A, B> = {
-  value: B,
-  next: Reactive<T, A, B>
-}
-
 export function run <T, A, B> (
-  r: Reactive<T, Evt<A>, B>,
+  r: SignalFunc<T, A, B>,
   input: Input<A>,
   session: Session<T>,
   handleOutput: (b: B) => any
@@ -29,7 +20,7 @@ export function run <T, A, B> (
   })
 }
 
-export function loop <T, A, B> (session: Session<T>, input: Input<A>, sf: Reactive<T, A, [B, Input<A>]>): DisposeInput {
+export function loop <T, A, B> (session: Session<T>, input: Input<A>, sf: SignalFunc<T, A, [B, Input<A>]>): DisposeInput {
   let dispose = input(a => {
     const { sample, nextSession } = session.step()
     const { value: [_, nextInput], next } = sf.step(sample, a)

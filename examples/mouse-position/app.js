@@ -11,30 +11,42 @@ function uncurry           (f                   )                    {
 }
 
 //      
-// An Event is either a value or NoEvent, indicating that
-// the Event did not occur
-// type Event a = a | NoEvent
+// Signal Function is a time varying transformation that
+// turns Signals of A into Signals of B.  It may carry state
+// and evolve over time
+                                   
+                                           
+ 
 
-// A Reactive transformation turns as into bs, and may carry
-// state or evolve over time
-// type Reactive t a b = { step :: t -> a -> Step t a b }
+// A Step is the result of applying a SignalFunc
+// to an A to get a B and a new SignalFunc
+                                   
+           
+                           
+ 
 
-// A Step is the result of applying a Reactive transformation
-// to an a to get a b and a new Reactive transformation
-// type Step t a b = { value :: b, next :: Reactive t a b }
+// SignalFunc specialized for Time type
+// Note: Flow can't infer generics, IOW, it can't info the
+// type T *later* based on the Session type provided when running
+// a SignalFunc.  Flow needs to be able to determine T at the
+// instant a SignalFunc is created, but the type is only known
+// later when a Session is used to run the SignalFunc
+                                                 
 
-// step :: b -> Reactive t a b -> Step t a b
+// SignalStep specialized for Time type
+// re: Flow, similarly
+                                                   
+
 // Simple helper to construct a Step
 var step = function (value, next) { return ({ value: value, next: next }); }
 
-// lift :: (a -> b) -> Reactive t a b
-// Lift a function into a Reactive transform
-function lift        (f             )                  {
+// Lift a function into a SignalFunc
+function lift        (f             )               {
   return new Lift(f)
 }
 
-// unsplit :: (a -> b -> c) -> Reactive t [a, b] c
-function unsplit           (f                   )                       {
+// Combine a pair of signals into a signal of C
+function unsplit           (f                   )                    {
   return lift(uncurry(f))
 }
 
@@ -42,11 +54,11 @@ var Lift = function Lift (f           ) {
   this.f = f
 };
 
-Lift.prototype.step = function step$1 (t    , a )                   {
+Lift.prototype.step = function step$1 (t    , a )               {
   return step(this.f(a), this)
 };
 
-// pipe :: (Reactive t a b ... Reactive t y z) -> Reactive t a z
+// pipe :: (SFTime a b ... SFTime y z) -> SFTime a z
 // Compose many Reactive transformations, left to right
 var pipe = function (ab) {
   var rest = [], len = arguments.length - 1;
@@ -55,7 +67,7 @@ var pipe = function (ab) {
   return rest.reduce(pipe2, ab);
 }
 
-// pipe2 :: Reactive t a b -> Reactive t b c -> Reactive t a c
+// pipe2 :: SFTime a b -> SFTime b c -> SFTime a c
 // Compose 2 Reactive transformations left to right
 var pipe2 = function (ab, bc) { return new Pipe(ab, bc); }
 
@@ -74,7 +86,7 @@ Pipe.prototype.step = function step$4 (t, a) {
   return step(c, pipe(ab, bc))
 };
 
-// both :: Reactive t a b -> Reactive t c d -> Reactive [a, b] [c, d]
+// both :: SFTime a b -> SFTime c d -> Reactive [a, b] [c, d]
 // Given an [a, c] input, pass a through Reactive transformation ab and
 // c through Reactive transformation cd to yield [b, d]
 var both = function (ab, cd) { return new Both(ab, cd); }
@@ -98,7 +110,7 @@ Both.prototype.step = function step$5 (t, ref) {
 };
 
 //      
-                                                               
+                                                        
 // An event, which has a value when it occurs, and
 // has no value when it doesn't occur
                              
@@ -112,12 +124,12 @@ function map        (f             )                        {
 }
 
 // Transform event values
-function mapE        (f             )                            {
+function mapE        (f             )                         {
   return lift(map(f))
 }
 
 // Turn an event into a stepped continuous value
-function hold     (initial   )                       {
+function hold     (initial   )                    {
   return new Hold(initial)
 }
 
@@ -125,7 +137,7 @@ var Hold = function Hold (value ) {
   this.value = value
 };
 
-Hold.prototype.step = function step (t    , a )                        {
+Hold.prototype.step = function step (t    , a )                      {
   if(a === undefined) {
     return { value: this.value, next: this }
   }
@@ -157,20 +169,11 @@ function both$1       (input1          , input2          )                      
 
 //      
                                                   
-                                  
+                                          
                                         
 
-                                 
-                                             
- 
-
-                                     
-           
-                         
- 
-
 function run           (
-  r                        ,
+  r                     ,
   input          ,
   session            ,
   handleOutput               

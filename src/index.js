@@ -5,7 +5,7 @@
 //   accum, scanl, hold
 // } from './reactive'
 
-export * from './reactive'
+export * from './signal'
 export * from './event'
 
 export {

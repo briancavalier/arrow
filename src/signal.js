@@ -3,49 +3,52 @@ import { dup, swap, uncurry } from './pair'
 
 export type Time = number
 
-export type ReactiveT<A, B> = {
-  step: (t: Time, a: A) => ReactiveStep<A, B>
+// Signal Function is a time varying transformation that
+// turns Signals of A into Signals of B.  It may carry state
+// and evolve over time
+export type SignalFunc<T, A, B> = {
+  step: (t: T, a: A) => SignalStep<T, A, B>
 }
 
-export type ReactiveStep<A, B> = {
+// A Step is the result of applying a SignalFunc
+// to an A to get a B and a new SignalFunc
+export type SignalStep<T, A, B> = {
   value: B,
-  next: ReactiveT<A, B>
+  next: SignalFunc<T, A, B>
 }
 
-// An Event is either a value or NoEvent, indicating that
-// the Event did not occur
-// type Event a = a | NoEvent
+// SignalFunc specialized for Time type
+// Note: Flow can't infer generics, IOW, it can't info the
+// type T *later* based on the Session type provided when running
+// a SignalFunc.  Flow needs to be able to determine T at the
+// instant a SignalFunc is created, but the type is only known
+// later when a Session is used to run the SignalFunc
+export type SFTime<A, B> = SignalFunc<Time, A, B>
 
-// A Reactive transformation turns as into bs, and may carry
-// state or evolve over time
-// type Reactive t a b = { step :: t -> a -> Step t a b }
+// SignalStep specialized for Time type
+// re: Flow, similarly
+export type StepTime<A, B> = SignalStep<Time, A, B>
 
-// A Step is the result of applying a Reactive transformation
-// to an a to get a b and a new Reactive transformation
-// type Step t a b = { value :: b, next :: Reactive t a b }
-
-// step :: b -> Reactive t a b -> Step t a b
 // Simple helper to construct a Step
 const step = (value, next) => ({ value, next })
 
-export const time: ReactiveT<any, Time> =
+export const time: SFTime<any, Time> =
   { step: (value, _) => ({ value, next: time }) }
 
-// lift :: (a -> b) -> Reactive t a b
-// Lift a function into a Reactive transform
-export function lift <A, B> (f: (a: A) => B): ReactiveT<A, B> {
+// Lift a function into a SignalFunc
+export function lift <A, B> (f: (a: A) => B): SFTime<A, B> {
   return new Lift(f)
 }
 
-// unsplit :: (a -> b -> c) -> Reactive t [a, b] c
-export function unsplit <A, B, C> (f: (a: A, b: B) => C): ReactiveT<[A, B], C> {
+// Combine a pair of signals into a signal of C
+export function unsplit <A, B, C> (f: (a: A, b: B) => C): SFTime<[A, B], C> {
   return lift(uncurry(f))
 }
 
-// always :: a -> Reactive t a a
-// Reactive transformation that turns everything into a
+// SignalFunc that runs any signal into a signal whose
+// value is always a
 // TODO: Give this its own type so it can be composed efficiently
-export function always <A> (a: A): ReactiveT<any, A> {
+export function always <A> (a: A): SFTime<any, A> {
   return lift(constant(a))
 }
 
@@ -64,37 +67,37 @@ class Lift<A, B> {
     this.f = f
   }
 
-  step (t: Time, a: A): ReactiveStep<A, B> {
+  step (t: Time, a: A): StepTime<A, B> {
     return step(this.f(a), this)
   }
 }
 
-// id :: Reactive t a a
+// id :: SFTime a a
 // Reactive transformation that yields its input at each step
 // TODO: Give this its own type so it can be composed efficiently
-export function id <A> (): ReactiveT<A, A> {
+export function id <A> (): SFTime<A, A> {
   return lift(identity)
 }
 
-// first  :: Reactive t a b -> Reactive t [a, c] [b, c]
-// Apply a Reactive transform to the first element of a pair
-export function first <A, B, C> (ab: ReactiveT<A, B>): ReactiveT<[A, C], [B, C]> {
+// first  :: SFTime a b -> SFTime [a, c] [b, c]
+// Apply a SignalFunc to the first signal of a pair
+export function first <A, B, C> (ab: SFTime<A, B>): SFTime<[A, C], [B, C]> {
   return new First(ab)
 }
 
-// second :: Reactive t a b -> Reactive t [c, a] [c, b]
-export function second <A, B, C> (ab: ReactiveT<A, B>): ReactiveT<[C, A], [C, B]> {
+// second :: SFTime a b -> SFTime [c, a] [c, b]
+export function second <A, B, C> (ab: SFTime<A, B>): SFTime<[C, A], [C, B]> {
   return dimap(swap, swap, first(ab))
 }
 
 class First<A, B, C> {
-  ab: ReactiveT<A, B>
+  ab: SFTime<A, B>
 
-  constructor (ab: ReactiveT<A, B>) {
+  constructor (ab: SFTime<A, B>) {
     this.ab = ab
   }
 
-  step (t: Time, [a, c]: [A, C]): ReactiveStep<[A, C], [B, C]> {
+  step (t: Time, [a, c]: [A, C]): StepTime<[A, C], [B, C]> {
     const { value: b, next } = this.ab.step(t, a)
     return step([b, c], first(next))
   }
@@ -103,31 +106,31 @@ class First<A, B, C> {
 // unfirst  :: c -> Reactive [a, c] [b, c] -> Reactive a b
 // unsecond :: c -> Reactive [c, a] [c, b] -> Reactive a b
 // Tie a Reactive into a loop that feeds c back into itself
-export function unfirst <A, B, C> (ab: ReactiveT<[A, C], [B, C]>, c: C): ReactiveT<A, B> {
+export function unfirst <A, B, C> (ab: SFTime<[A, C], [B, C]>, c: C): SFTime<A, B> {
   return new Unfirst(ab, c)
 }
 // export const unsecond = (arrow, c) => unfirst(dimap(swap, swap, arrow), c)
 
 class Unfirst<A, B, C> {
-  ab: ReactiveT<[A, C], [B, C]>
+  ab: SFTime<[A, C], [B, C]>
   value: C
 
-  constructor (ab: ReactiveT<[A, C], [B, C]>, c: C) {
+  constructor (ab: SFTime<[A, C], [B, C]>, c: C) {
     this.ab = ab
     this.value = c
   }
 
-  step (t: Time, a: A): ReactiveStep<A, B> {
+  step (t: Time, a: A): StepTime<A, B> {
     const { value: [b, c], next } = this.ab.step(t, [a, this.value])
     return step(b, unfirst(next, c))
   }
 }
 
-// pipe :: (Reactive t a b ... Reactive t y z) -> Reactive t a z
+// pipe :: (SFTime a b ... SFTime y z) -> SFTime a z
 // Compose many Reactive transformations, left to right
 export const pipe = (ab, ...rest) => rest.reduce(pipe2, ab)
 
-// pipe2 :: Reactive t a b -> Reactive t b c -> Reactive t a c
+// pipe2 :: SFTime a b -> SFTime b c -> SFTime a c
 // Compose 2 Reactive transformations left to right
 const pipe2 = (ab, bc) => new Pipe(ab, bc)
 
@@ -148,12 +151,12 @@ class Pipe {
   }
 }
 
-// split :: Reactive t a b -> Reactive t a c -> Reactive t [b, c]
+// split :: SFTime a b -> SFTime a c -> SFTime [b, c]
 // Duplicates input a and pass it through Reactive transformations
 // ab and ac to yield [b, c]
 export const split = (ab, ac) => lmap(dup, both(ab, ac))
 
-// both :: Reactive t a b -> Reactive t c d -> Reactive [a, b] [c, d]
+// both :: SFTime a b -> SFTime c d -> Reactive [a, b] [c, d]
 // Given an [a, c] input, pass a through Reactive transformation ab and
 // c through Reactive transformation cd to yield [b, d]
 export const both = (ab, cd) => new Both(ab, cd)

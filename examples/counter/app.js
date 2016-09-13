@@ -11,30 +11,42 @@ function uncurry           (f                   )                    {
 }
 
 //      
-// An Event is either a value or NoEvent, indicating that
-// the Event did not occur
-// type Event a = a | NoEvent
+// Signal Function is a time varying transformation that
+// turns Signals of A into Signals of B.  It may carry state
+// and evolve over time
+                                   
+                                           
+ 
 
-// A Reactive transformation turns as into bs, and may carry
-// state or evolve over time
-// type Reactive t a b = { step :: t -> a -> Step t a b }
+// A Step is the result of applying a SignalFunc
+// to an A to get a B and a new SignalFunc
+                                   
+           
+                           
+ 
 
-// A Step is the result of applying a Reactive transformation
-// to an a to get a b and a new Reactive transformation
-// type Step t a b = { value :: b, next :: Reactive t a b }
+// SignalFunc specialized for Time type
+// Note: Flow can't infer generics, IOW, it can't info the
+// type T *later* based on the Session type provided when running
+// a SignalFunc.  Flow needs to be able to determine T at the
+// instant a SignalFunc is created, but the type is only known
+// later when a Session is used to run the SignalFunc
+                                                 
 
-// step :: b -> Reactive t a b -> Step t a b
+// SignalStep specialized for Time type
+// re: Flow, similarly
+                                                   
+
 // Simple helper to construct a Step
 var step = function (value, next) { return ({ value: value, next: next }); }
 
-// lift :: (a -> b) -> Reactive t a b
-// Lift a function into a Reactive transform
-function lift        (f             )                  {
+// Lift a function into a SignalFunc
+function lift        (f             )               {
   return new Lift(f)
 }
 
-// unsplit :: (a -> b -> c) -> Reactive t [a, b] c
-function unsplit           (f                   )                       {
+// Combine a pair of signals into a signal of C
+function unsplit           (f                   )                    {
   return lift(uncurry(f))
 }
 
@@ -42,21 +54,21 @@ var Lift = function Lift (f           ) {
   this.f = f
 };
 
-Lift.prototype.step = function step$1 (t    , a )                   {
+Lift.prototype.step = function step$1 (t    , a )               {
   return step(this.f(a), this)
 };
 
-// first  :: Reactive t a b -> Reactive t [a, c] [b, c]
-// Apply a Reactive transform to the first element of a pair
-function first           (ab                 )                            {
+// first  :: SFTime a b -> SFTime [a, c] [b, c]
+// Apply a SignalFunc to the first signal of a pair
+function first           (ab              )                         {
   return new First(ab)
 }
 
-var First = function First (ab               ) {
+var First = function First (ab            ) {
   this.ab = ab
 };
 
-First.prototype.step = function step$2 (t    , ref      )                             {
+First.prototype.step = function step$2 (t    , ref      )                         {
     var a = ref[0];
     var c = ref[1];
 
@@ -66,7 +78,7 @@ First.prototype.step = function step$2 (t    , ref      )                       
   return step([b, c], first(next))
 };
 
-// pipe :: (Reactive t a b ... Reactive t y z) -> Reactive t a z
+// pipe :: (SFTime a b ... SFTime y z) -> SFTime a z
 // Compose many Reactive transformations, left to right
 var pipe = function (ab) {
   var rest = [], len = arguments.length - 1;
@@ -75,7 +87,7 @@ var pipe = function (ab) {
   return rest.reduce(pipe2, ab);
 }
 
-// pipe2 :: Reactive t a b -> Reactive t b c -> Reactive t a c
+// pipe2 :: SFTime a b -> SFTime b c -> SFTime a c
 // Compose 2 Reactive transformations left to right
 var pipe2 = function (ab, bc) { return new Pipe(ab, bc); }
 
@@ -94,7 +106,7 @@ Pipe.prototype.step = function step$4 (t, a) {
   return step(c, pipe(ab, bc))
 };
 
-// both :: Reactive t a b -> Reactive t c d -> Reactive [a, b] [c, d]
+// both :: SFTime a b -> SFTime c d -> Reactive [a, b] [c, d]
 // Given an [a, c] input, pass a through Reactive transformation ab and
 // c through Reactive transformation cd to yield [b, d]
 var both = function (ab, cd) { return new Both(ab, cd); }
@@ -118,7 +130,7 @@ Both.prototype.step = function step$5 (t, ref) {
 };
 
 //      
-                                                               
+                                                        
 // An event, which has a value when it occurs, and
 // has no value when it doesn't occur
                              
@@ -139,7 +151,7 @@ function mergeE     (a1        , a2        )         {
 // Internal helper to allow continuous value transformations to be
 // applied when an event occurs
 // TODO: Consider exposing this if it seems useful
-function liftE        (ab                 )                            {
+function liftE        (ab              )                         {
   return new LiftE(ab)
 }
 
@@ -147,7 +159,7 @@ var LiftE = function LiftE (ab) {
   this.ab = ab
 };
 
-LiftE.prototype.step = function step (t    , a      )                             {
+LiftE.prototype.step = function step (t    , a      )                           {
   if(a === undefined) {
     return { value: NoEvent, next: this }
   }
@@ -158,27 +170,27 @@ LiftE.prototype.step = function step (t    , a      )                           
 };
 
 // Transform event values
-function mapE        (f             )                            {
+function mapE        (f             )                         {
   return lift(map(f))
 }
 
 // When an event occurs, make its value b
-function as        (b   )                            {
+function as        (b   )                         {
   return mapE(function (_) { return b; })
 }
 
 // Merge events, preferring the left in the case of
 // simultaneous occurrence
-function merge     ()                                      {
+function merge     ()                                   {
   return unsplit(mergeE)
 }
 
-function or        (left                           , right                           )                            {
+function or        (left                        , right                        )                         {
   return liftE(pipe(both(left, right), merge()))
 }
 
 // Turn an event into a stepped continuous value
-function hold     (initial   )                       {
+function hold     (initial   )                    {
   return new Hold(initial)
 }
 
@@ -186,7 +198,7 @@ var Hold = function Hold (value ) {
   this.value = value
 };
 
-Hold.prototype.step = function step (t    , a )                        {
+Hold.prototype.step = function step (t    , a )                      {
   if(a === undefined) {
     return { value: this.value, next: this }
   }
@@ -194,12 +206,12 @@ Hold.prototype.step = function step (t    , a )                        {
 };
 
 // Accumulate event
-function scanE        (f                   , initial   )                            {
+function scanE        (f                   , initial   )                         {
   return new Accum(f, initial)
 }
 
 // Accumulate event to a continuous value
-function scan        (f                   , initial   )                       {
+function scan        (f                   , initial   )                    {
   return pipe(scanE(f, initial), hold(initial))
 }
 
@@ -208,7 +220,7 @@ var Accum = function Accum(f                 , value ) {
   this.value = value
 };
 
-Accum.prototype.step = function step (t    , a )                        {
+Accum.prototype.step = function step (t    , a )                      {
   if(a === undefined) {
     return { value: NoEvent, next: this }
   }
@@ -258,7 +270,7 @@ function newInput     ()                       {
   return [occur, input]
 }
 
-function loop           (session            , input          , sf                               )               {
+function loop           (session            , input          , sf                                 )               {
   var dispose = input(function (a) {
     var ref = session.step();
     var sample = ref.sample;
@@ -308,9 +320,9 @@ ClockSession.prototype.step = function step ()                    {
 };
 
 //      
-                                           
+                                      
                                     
-function vdomUpdate            (patch                   , init       )                                                  {
+function vdomUpdate            (patch                   , init       )                                               {
   return first(scan(patch, init))
 }
 
@@ -700,7 +712,8 @@ function init(modules, api) {
 module.exports = {init: init};
 });
 
-var snabbdom$1 = interopDefault(snabbdom);
+interopDefault(snabbdom);
+var init = snabbdom.init;
 
 var eventlisteners = createCommonjsModule(function (module) {
 function invokeHandler(handler, vnode, event) {
@@ -808,6 +821,82 @@ module.exports = {
 
 var events = interopDefault(eventlisteners);
 
+var attributes = createCommonjsModule(function (module) {
+var booleanAttrs = ["allowfullscreen", "async", "autofocus", "autoplay", "checked", "compact", "controls", "declare",
+                "default", "defaultchecked", "defaultmuted", "defaultselected", "defer", "disabled", "draggable",
+                "enabled", "formnovalidate", "hidden", "indeterminate", "inert", "ismap", "itemscope", "loop", "multiple",
+                "muted", "nohref", "noresize", "noshade", "novalidate", "nowrap", "open", "pauseonexit", "readonly",
+                "required", "reversed", "scoped", "seamless", "selected", "sortable", "spellcheck", "translate",
+                "truespeed", "typemustmatch", "visible"];
+
+var booleanAttrsDict = {};
+for(var i=0, len = booleanAttrs.length; i < len; i++) {
+  booleanAttrsDict[booleanAttrs[i]] = true;
+}
+
+function updateAttrs(oldVnode, vnode) {
+  var key, cur, old, elm = vnode.elm,
+      oldAttrs = oldVnode.data.attrs, attrs = vnode.data.attrs;
+
+  if (!oldAttrs && !attrs) return;
+  oldAttrs = oldAttrs || {};
+  attrs = attrs || {};
+
+  // update modified attributes, add new attributes
+  for (key in attrs) {
+    cur = attrs[key];
+    old = oldAttrs[key];
+    if (old !== cur) {
+      // TODO: add support to namespaced attributes (setAttributeNS)
+      if(!cur && booleanAttrsDict[key])
+        elm.removeAttribute(key);
+      else
+        elm.setAttribute(key, cur);
+    }
+  }
+  //remove removed attributes
+  // use `in` operator since the previous `for` iteration uses it (.i.e. add even attributes with undefined value)
+  // the other option is to remove all attributes with value == undefined
+  for (key in oldAttrs) {
+    if (!(key in attrs)) {
+      elm.removeAttribute(key);
+    }
+  }
+}
+
+module.exports = {create: updateAttrs, update: updateAttrs};
+});
+
+interopDefault(attributes);
+
+var _class = createCommonjsModule(function (module) {
+function updateClass(oldVnode, vnode) {
+  var cur, name, elm = vnode.elm,
+      oldClass = oldVnode.data.class,
+      klass = vnode.data.class;
+
+  if (!oldClass && !klass) return;
+  oldClass = oldClass || {};
+  klass = klass || {};
+
+  for (name in oldClass) {
+    if (!klass[name]) {
+      elm.classList.remove(name);
+    }
+  }
+  for (name in klass) {
+    cur = klass[name];
+    if (cur !== oldClass[name]) {
+      elm.classList[cur ? 'add' : 'remove'](name);
+    }
+  }
+}
+
+module.exports = {create: updateClass, update: updateClass};
+});
+
+interopDefault(_class);
+
 var h = createCommonjsModule(function (module) {
 var VNode = interopDefault(require$$1);
 var is = interopDefault(require$$0);
@@ -845,11 +934,71 @@ module.exports = function h(sel, b, c) {
 };
 });
 
-var h$1 = interopDefault(h);
+var sh = interopDefault(h);
+
+var index = createCommonjsModule(function (module, exports) {
+'use strict';
+
+Object.defineProperty(exports, '__esModule', {
+  value: true
+});
+var isValidString = function isValidString(param) {
+  return typeof param === 'string' && param.length > 0;
+};
+
+var startsWith = function startsWith(string, start) {
+  return string[0] === start;
+};
+
+var isSelector = function isSelector(param) {
+  return isValidString(param) && (startsWith(param, '.') || startsWith(param, '#'));
+};
+
+var node = function node(h) {
+  return function (tagName) {
+    return function (first) {
+      var arguments$1 = arguments;
+
+      for (var _len = arguments.length, rest = Array(_len > 1 ? _len - 1 : 0), _key = 1; _key < _len; _key++) {
+        rest[_key - 1] = arguments$1[_key];
+      }
+
+      if (isSelector(first)) {
+        return h.apply(undefined, [tagName + first].concat(rest));
+      } else if (typeof first === 'undefined') {
+        return h(tagName);
+      } else {
+        return h.apply(undefined, [tagName, first].concat(rest));
+      }
+    };
+  };
+};
+
+var TAG_NAMES = ['a', 'abbr', 'acronym', 'address', 'applet', 'area', 'article', 'aside', 'audio', 'b', 'base', 'basefont', 'bdi', 'bdo', 'bgsound', 'big', 'blink', 'blockquote', 'body', 'br', 'button', 'canvas', 'caption', 'center', 'cite', 'code', 'col', 'colgroup', 'command', 'content', 'data', 'datalist', 'dd', 'del', 'details', 'dfn', 'dialog', 'dir', 'div', 'dl', 'dt', 'element', 'em', 'embed', 'fieldset', 'figcaption', 'figure', 'font', 'footer', 'form', 'frame', 'frameset', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'head', 'header', 'hgroup', 'hr', 'html', 'i', 'iframe', 'image', 'img', 'input', 'ins', 'isindex', 'kbd', 'keygen', 'label', 'legend', 'li', 'link', 'listing', 'main', 'map', 'mark', 'marquee', 'math', 'menu', 'menuitem', 'meta', 'meter', 'multicol', 'nav', 'nextid', 'nobr', 'noembed', 'noframes', 'noscript', 'object', 'ol', 'optgroup', 'option', 'output', 'p', 'param', 'picture', 'plaintext', 'pre', 'progress', 'q', 'rb', 'rbc', 'rp', 'rt', 'rtc', 'ruby', 's', 'samp', 'script', 'section', 'select', 'shadow', 'small', 'source', 'spacer', 'span', 'strike', 'strong', 'style', 'sub', 'summary', 'sup', 'svg', 'table', 'tbody', 'td', 'template', 'textarea', 'tfoot', 'th', 'thead', 'time', 'title', 'tr', 'track', 'tt', 'u', 'ul', 'var', 'video', 'wbr', 'xmp'];
+
+exports['default'] = function (h) {
+  var createTag = node(h);
+  var exported = { TAG_NAMES: TAG_NAMES, isSelector: isSelector, createTag: createTag };
+  TAG_NAMES.forEach(function (n) {
+    exported[n] = createTag(n);
+  });
+  return exported;
+};
+
+module.exports = exports['default'];
+});
+
+var hh = interopDefault(index);
+
+var html = hh(sh)
 
 //      
+var div = html.div;
+var p = html.p;
+var button = html.button;
+
 var container = document.getElementById('app')
-var patch = snabbdom$1.init([events])
+var patch = init([events])
 
 var ref = newInput();
 var inc = ref[0];
@@ -858,10 +1007,10 @@ var ref$1 = newInput();
 var dec = ref$1[0];
 var decInput = ref$1[1];
 
-var render = function (value) { return [h$1('div#app', [
-    h$1('p', value),
-    h$1('button', { on: { click: dec } }, '-'),
-    h$1('button', { on: { click: inc } }, '+')
+var render = function (value) { return [div('#app', [
+    p(value),
+    button({ on: { click: dec } }, '-'),
+    button({ on: { click: inc } }, '+')
   ]), both$1(incInput, decInput)]; }
 
 var add = function (a, b) { return a + b; }

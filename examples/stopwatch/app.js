@@ -11,33 +11,45 @@ function uncurry           (f                   )                    {
 }
 
 //      
-// An Event is either a value or NoEvent, indicating that
-// the Event did not occur
-// type Event a = a | NoEvent
+// Signal Function is a time varying transformation that
+// turns Signals of A into Signals of B.  It may carry state
+// and evolve over time
+                                   
+                                           
+ 
 
-// A Reactive transformation turns as into bs, and may carry
-// state or evolve over time
-// type Reactive t a b = { step :: t -> a -> Step t a b }
+// A Step is the result of applying a SignalFunc
+// to an A to get a B and a new SignalFunc
+                                   
+           
+                           
+ 
 
-// A Step is the result of applying a Reactive transformation
-// to an a to get a b and a new Reactive transformation
-// type Step t a b = { value :: b, next :: Reactive t a b }
+// SignalFunc specialized for Time type
+// Note: Flow can't infer generics, IOW, it can't info the
+// type T *later* based on the Session type provided when running
+// a SignalFunc.  Flow needs to be able to determine T at the
+// instant a SignalFunc is created, but the type is only known
+// later when a Session is used to run the SignalFunc
+                                                 
 
-// step :: b -> Reactive t a b -> Step t a b
+// SignalStep specialized for Time type
+// re: Flow, similarly
+                                                   
+
 // Simple helper to construct a Step
 var step = function (value, next) { return ({ value: value, next: next }); }
 
-var time                       =
+var time                    =
   { step: function (value, _) { return ({ value: value, next: time }); } }
 
-// lift :: (a -> b) -> Reactive t a b
-// Lift a function into a Reactive transform
-function lift        (f             )                  {
+// Lift a function into a SignalFunc
+function lift        (f             )               {
   return new Lift(f)
 }
 
-// unsplit :: (a -> b -> c) -> Reactive t [a, b] c
-function unsplit           (f                   )                       {
+// Combine a pair of signals into a signal of C
+function unsplit           (f                   )                    {
   return lift(uncurry(f))
 }
 
@@ -45,21 +57,21 @@ var Lift = function Lift (f           ) {
   this.f = f
 };
 
-Lift.prototype.step = function step$1 (t    , a )                   {
+Lift.prototype.step = function step$1 (t    , a )               {
   return step(this.f(a), this)
 };
 
-// first  :: Reactive t a b -> Reactive t [a, c] [b, c]
-// Apply a Reactive transform to the first element of a pair
-function first           (ab                 )                            {
+// first  :: SFTime a b -> SFTime [a, c] [b, c]
+// Apply a SignalFunc to the first signal of a pair
+function first           (ab              )                         {
   return new First(ab)
 }
 
-var First = function First (ab               ) {
+var First = function First (ab            ) {
   this.ab = ab
 };
 
-First.prototype.step = function step$2 (t    , ref      )                             {
+First.prototype.step = function step$2 (t    , ref      )                         {
     var a = ref[0];
     var c = ref[1];
 
@@ -69,7 +81,7 @@ First.prototype.step = function step$2 (t    , ref      )                       
   return step([b, c], first(next))
 };
 
-// pipe :: (Reactive t a b ... Reactive t y z) -> Reactive t a z
+// pipe :: (SFTime a b ... SFTime y z) -> SFTime a z
 // Compose many Reactive transformations, left to right
 var pipe = function (ab) {
   var rest = [], len = arguments.length - 1;
@@ -78,7 +90,7 @@ var pipe = function (ab) {
   return rest.reduce(pipe2, ab);
 }
 
-// pipe2 :: Reactive t a b -> Reactive t b c -> Reactive t a c
+// pipe2 :: SFTime a b -> SFTime b c -> SFTime a c
 // Compose 2 Reactive transformations left to right
 var pipe2 = function (ab, bc) { return new Pipe(ab, bc); }
 
@@ -97,7 +109,7 @@ Pipe.prototype.step = function step$4 (t, a) {
   return step(c, pipe(ab, bc))
 };
 
-// both :: Reactive t a b -> Reactive t c d -> Reactive [a, b] [c, d]
+// both :: SFTime a b -> SFTime c d -> Reactive [a, b] [c, d]
 // Given an [a, c] input, pass a through Reactive transformation ab and
 // c through Reactive transformation cd to yield [b, d]
 var both = function (ab, cd) { return new Both(ab, cd); }
@@ -121,7 +133,7 @@ Both.prototype.step = function step$5 (t, ref) {
 };
 
 //      
-                                                               
+                                                        
 // An event, which has a value when it occurs, and
 // has no value when it doesn't occur
                              
@@ -142,7 +154,7 @@ function mergeE     (a1        , a2        )         {
 // Internal helper to allow continuous value transformations to be
 // applied when an event occurs
 // TODO: Consider exposing this if it seems useful
-function liftE        (ab                 )                            {
+function liftE        (ab              )                         {
   return new LiftE(ab)
 }
 
@@ -150,7 +162,7 @@ var LiftE = function LiftE (ab) {
   this.ab = ab
 };
 
-LiftE.prototype.step = function step (t    , a      )                             {
+LiftE.prototype.step = function step (t    , a      )                           {
   if(a === undefined) {
     return { value: NoEvent, next: this }
   }
@@ -161,29 +173,29 @@ LiftE.prototype.step = function step (t    , a      )                           
 };
 
 // Sample the current time when an event occurs
-var eventTime                                 = {
-  step: function step (t      , a     )                                    {
+var eventTime                              = {
+  step: function step (t      , a     )                                  {
     return { value: a === undefined ? NoEvent : t, next: this }
   }
 }
 
 // Transform event values
-function mapE        (f             )                            {
+function mapE        (f             )                         {
   return lift(map(f))
 }
 
 // Merge events, preferring the left in the case of
 // simultaneous occurrence
-function merge     ()                                      {
+function merge     ()                                   {
   return unsplit(mergeE)
 }
 
-function or        (left                           , right                           )                            {
+function or        (left                        , right                        )                         {
   return liftE(pipe(both(left, right), merge()))
 }
 
 // Turn an event into a stepped continuous value
-function hold     (initial   )                       {
+function hold     (initial   )                    {
   return new Hold(initial)
 }
 
@@ -191,7 +203,7 @@ var Hold = function Hold (value ) {
   this.value = value
 };
 
-Hold.prototype.step = function step (t    , a )                        {
+Hold.prototype.step = function step (t    , a )                      {
   if(a === undefined) {
     return { value: this.value, next: this }
   }
@@ -199,22 +211,22 @@ Hold.prototype.step = function step (t    , a )                        {
 };
 
 // Accumulate event
-function scanE        (f                   , initial   )                            {
+function scanE        (f                   , initial   )                         {
   return new Accum(f, initial)
 }
 
 // Accumulate event to a continuous value
-function scan        (f                   , initial   )                       {
+function scan        (f                   , initial   )                    {
   return pipe(scanE(f, initial), hold(initial))
 }
 
 // Accumulate event, given an initial value and a update-function event
-function accumE     (initial   )                                      {
+function accumE     (initial   )                                   {
   return scanE(function (a, f) { return f(a); }, initial)
 }
 
 // Accumulate event to a continuous value, given an initial value and a update-function event
-function accum     (initial   )                                 {
+function accum     (initial   )                              {
   return pipe(accumE(initial), hold(initial))
 }
 
@@ -223,7 +235,7 @@ var Accum = function Accum(f                 , value ) {
   this.value = value
 };
 
-Accum.prototype.step = function step (t    , a )                        {
+Accum.prototype.step = function step (t    , a )                      {
   if(a === undefined) {
     return { value: NoEvent, next: this }
   }
@@ -276,7 +288,7 @@ function newInput     ()                       {
   return [occur, input]
 }
 
-function loop           (session            , input          , sf                               )               {
+function loop           (session            , input          , sf                                 )               {
   var dispose = input(function (a) {
     var ref = session.step();
     var sample = ref.sample;
@@ -326,9 +338,9 @@ ClockSession.prototype.step = function step ()                    {
 };
 
 //      
-                                           
+                                      
                                     
-function vdomUpdate            (patch                   , init       )                                                  {
+function vdomUpdate            (patch                   , init       )                                               {
   return first(scan(patch, init))
 }
 
