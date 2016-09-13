@@ -133,7 +133,7 @@ Both.prototype.step = function step$5 (t, ref) {
 };
 
 //      
-                                                        
+                                                      
 // An event, which has a value when it occurs, and
 // has no value when it doesn't occur
                              
@@ -162,7 +162,7 @@ var LiftE = function LiftE (ab) {
   this.ab = ab
 };
 
-LiftE.prototype.step = function step (t    , a      )                           {
+LiftE.prototype.step = function step (t    , a      )                         {
   if(a === undefined) {
     return { value: NoEvent, next: this }
   }
@@ -174,7 +174,7 @@ LiftE.prototype.step = function step (t    , a      )                           
 
 // Sample the current time when an event occurs
 var eventTime                              = {
-  step: function step (t      , a     )                                  {
+  step: function step (t      , a     )                                {
     return { value: a === undefined ? NoEvent : t, next: this }
   }
 }
@@ -190,6 +190,7 @@ function merge     ()                                   {
   return unsplit(mergeE)
 }
 
+// Merge event SignalFuncs
 function or        (left                        , right                        )                         {
   return liftE(pipe(both(left, right), merge()))
 }
@@ -203,11 +204,10 @@ var Hold = function Hold (value ) {
   this.value = value
 };
 
-Hold.prototype.step = function step (t    , a )                      {
-  if(a === undefined) {
-    return { value: this.value, next: this }
-  }
-  return { value: a, next: hold(a) }
+Hold.prototype.step = function step (t    , a )                    {
+  return a === undefined
+    ? { value: this.value, next: this }
+    : { value: a, next: hold(a) }
 };
 
 // Accumulate event
@@ -235,7 +235,7 @@ var Accum = function Accum(f                 , value ) {
   this.value = value
 };
 
-Accum.prototype.step = function step (t    , a )                      {
+Accum.prototype.step = function step (t    , a )                    {
   if(a === undefined) {
     return { value: NoEvent, next: this }
   }
@@ -338,9 +338,9 @@ ClockSession.prototype.step = function step ()                    {
 };
 
 //      
-                                      
+                                          
                                     
-function vdomUpdate            (patch                   , init       )                                               {
+function vdomUpdate               (patch                   , init       )                                                      {
   return first(scan(patch, init))
 }
 
@@ -737,7 +737,8 @@ function init(modules, api) {
 module.exports = {init: init};
 });
 
-var snabbdom$1 = interopDefault(snabbdom);
+interopDefault(snabbdom);
+var init = snabbdom.init;
 
 var eventlisteners = createCommonjsModule(function (module) {
 function invokeHandler(handler, vnode, event) {
@@ -958,7 +959,69 @@ module.exports = function h(sel, b, c) {
 };
 });
 
-var h$1 = interopDefault(h);
+var sh = interopDefault(h);
+
+var index = createCommonjsModule(function (module, exports) {
+'use strict';
+
+Object.defineProperty(exports, '__esModule', {
+  value: true
+});
+var isValidString = function isValidString(param) {
+  return typeof param === 'string' && param.length > 0;
+};
+
+var startsWith = function startsWith(string, start) {
+  return string[0] === start;
+};
+
+var isSelector = function isSelector(param) {
+  return isValidString(param) && (startsWith(param, '.') || startsWith(param, '#'));
+};
+
+var node = function node(h) {
+  return function (tagName) {
+    return function (first) {
+      var arguments$1 = arguments;
+
+      for (var _len = arguments.length, rest = Array(_len > 1 ? _len - 1 : 0), _key = 1; _key < _len; _key++) {
+        rest[_key - 1] = arguments$1[_key];
+      }
+
+      if (isSelector(first)) {
+        return h.apply(undefined, [tagName + first].concat(rest));
+      } else if (typeof first === 'undefined') {
+        return h(tagName);
+      } else {
+        return h.apply(undefined, [tagName, first].concat(rest));
+      }
+    };
+  };
+};
+
+var TAG_NAMES = ['a', 'abbr', 'acronym', 'address', 'applet', 'area', 'article', 'aside', 'audio', 'b', 'base', 'basefont', 'bdi', 'bdo', 'bgsound', 'big', 'blink', 'blockquote', 'body', 'br', 'button', 'canvas', 'caption', 'center', 'cite', 'code', 'col', 'colgroup', 'command', 'content', 'data', 'datalist', 'dd', 'del', 'details', 'dfn', 'dialog', 'dir', 'div', 'dl', 'dt', 'element', 'em', 'embed', 'fieldset', 'figcaption', 'figure', 'font', 'footer', 'form', 'frame', 'frameset', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'head', 'header', 'hgroup', 'hr', 'html', 'i', 'iframe', 'image', 'img', 'input', 'ins', 'isindex', 'kbd', 'keygen', 'label', 'legend', 'li', 'link', 'listing', 'main', 'map', 'mark', 'marquee', 'math', 'menu', 'menuitem', 'meta', 'meter', 'multicol', 'nav', 'nextid', 'nobr', 'noembed', 'noframes', 'noscript', 'object', 'ol', 'optgroup', 'option', 'output', 'p', 'param', 'picture', 'plaintext', 'pre', 'progress', 'q', 'rb', 'rbc', 'rp', 'rt', 'rtc', 'ruby', 's', 'samp', 'script', 'section', 'select', 'shadow', 'small', 'source', 'spacer', 'span', 'strike', 'strong', 'style', 'sub', 'summary', 'sup', 'svg', 'table', 'tbody', 'td', 'template', 'textarea', 'tfoot', 'th', 'thead', 'time', 'title', 'tr', 'track', 'tt', 'u', 'ul', 'var', 'video', 'wbr', 'xmp'];
+
+exports['default'] = function (h) {
+  var createTag = node(h);
+  var exported = { TAG_NAMES: TAG_NAMES, isSelector: isSelector, createTag: createTag };
+  TAG_NAMES.forEach(function (n) {
+    exported[n] = createTag(n);
+  });
+  return exported;
+};
+
+module.exports = exports['default'];
+});
+
+var hh = interopDefault(index);
+
+var html = hh(sh)
+
+var div = html.div;
+var span = html.span;
+var ol = html.ol;
+var li = html.li;
+var button = html.button;
 
 // TODO: combining many inputs and signals. Need a better way
 var anyInput = function () {
@@ -975,7 +1038,7 @@ var anySignal = function () {
 }
 
 var container = document.getElementById('app')
-var patch = snabbdom$1.init([events, attrs, clss])
+var patch = init([events, attrs, clss])
 
 var ref = newInput();
 var start = ref[0];
@@ -999,18 +1062,18 @@ var runningInputs = anyInput(timerInputs, animationFrames)
 var render = function (timer, time) {
   var elapsed = timerElapsed(time, timer)
   var zero = elapsed === 0
-  var vtree = h$1('div.timer', { class: { running: timer.running, zero: zero } }, [
-    h$1('div.elapsed', renderDuration(elapsed)),
-    h$1('div.lap-elapsed', renderDuration(timerCurrentLap(time, timer))),
-    h$1('button.reset', { on: { click: reset }, attrs: { disabled: timer.running || zero } }, 'Reset'),
-    h$1('button.start', { on: { click: start } }, 'Start'),
-    h$1('button.stop', { on: { click: stop } }, 'Stop'),
-    h$1('button.lap', { on: { click: lap }, attrs: { disabled: !timer.running } }, 'Lap'),
-    h$1('ol.laps', { attrs: { reversed: true } }, timer.laps.map(function (ref) {
+  var vtree = div('.timer', { class: { running: timer.running, zero: zero } }, [
+    div('.elapsed', renderDuration(elapsed)),
+    div('.lap-elapsed', renderDuration(timerCurrentLap(time, timer))),
+    button('.reset', { on: { click: reset }, attrs: { disabled: timer.running || zero } }, 'Reset'),
+    button('.start', { on: { click: start } }, 'Start'),
+    button('.stop', { on: { click: stop } }, 'Stop'),
+    button('.lap', { on: { click: lap }, attrs: { disabled: !timer.running } }, 'Lap'),
+    ol('.laps', { attrs: { reversed: true } }, timer.laps.map(function (ref) {
         var start = ref.start;
         var end = ref.end;
 
-        return h$1('li', renderDuration(end - start));
+        return li(renderDuration(end - start));
   })
     )
   ])
@@ -1020,9 +1083,9 @@ var render = function (timer, time) {
 
 // Timer formatting
 var renderDuration = function (ms) { return [
-  h$1('span.minutes', ("" + (mins(ms)))),
-  h$1('span.seconds', ("" + (secs(ms)))),
-  h$1('span.hundredths', ("" + (hundredths(ms))))
+  span('.minutes', ("" + (mins(ms)))),
+  span('.seconds', ("" + (secs(ms)))),
+  span('.hundredths', ("" + (hundredths(ms))))
 ]; }
 
 var mins = function (ms) { return pad((ms / (1000 * 60)) % 60); }

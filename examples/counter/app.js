@@ -130,7 +130,7 @@ Both.prototype.step = function step$5 (t, ref) {
 };
 
 //      
-                                                        
+                                                      
 // An event, which has a value when it occurs, and
 // has no value when it doesn't occur
                              
@@ -159,7 +159,7 @@ var LiftE = function LiftE (ab) {
   this.ab = ab
 };
 
-LiftE.prototype.step = function step (t    , a      )                           {
+LiftE.prototype.step = function step (t    , a      )                         {
   if(a === undefined) {
     return { value: NoEvent, next: this }
   }
@@ -185,6 +185,7 @@ function merge     ()                                   {
   return unsplit(mergeE)
 }
 
+// Merge event SignalFuncs
 function or        (left                        , right                        )                         {
   return liftE(pipe(both(left, right), merge()))
 }
@@ -198,11 +199,10 @@ var Hold = function Hold (value ) {
   this.value = value
 };
 
-Hold.prototype.step = function step (t    , a )                      {
-  if(a === undefined) {
-    return { value: this.value, next: this }
-  }
-  return { value: a, next: hold(a) }
+Hold.prototype.step = function step (t    , a )                    {
+  return a === undefined
+    ? { value: this.value, next: this }
+    : { value: a, next: hold(a) }
 };
 
 // Accumulate event
@@ -220,7 +220,7 @@ var Accum = function Accum(f                 , value ) {
   this.value = value
 };
 
-Accum.prototype.step = function step (t    , a )                      {
+Accum.prototype.step = function step (t    , a )                    {
   if(a === undefined) {
     return { value: NoEvent, next: this }
   }
@@ -320,9 +320,9 @@ ClockSession.prototype.step = function step ()                    {
 };
 
 //      
-                                      
+                                          
                                     
-function vdomUpdate            (patch                   , init       )                                               {
+function vdomUpdate               (patch                   , init       )                                                      {
   return first(scan(patch, init))
 }
 

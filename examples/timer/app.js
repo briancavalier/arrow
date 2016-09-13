@@ -130,7 +130,7 @@ Both.prototype.step = function step$5 (t, ref) {
 };
 
 //      
-                                                        
+                                                      
 // An event, which has a value when it occurs, and
 // has no value when it doesn't occur
                              
@@ -159,7 +159,7 @@ var LiftE = function LiftE (ab) {
   this.ab = ab
 };
 
-LiftE.prototype.step = function step (t    , a      )                           {
+LiftE.prototype.step = function step (t    , a      )                         {
   if(a === undefined) {
     return { value: NoEvent, next: this }
   }
@@ -185,6 +185,7 @@ function merge     ()                                   {
   return unsplit(mergeE)
 }
 
+// Merge event SignalFuncs
 function or        (left                        , right                        )                         {
   return liftE(pipe(both(left, right), merge()))
 }
@@ -198,11 +199,10 @@ var Hold = function Hold (value ) {
   this.value = value
 };
 
-Hold.prototype.step = function step (t    , a )                      {
-  if(a === undefined) {
-    return { value: this.value, next: this }
-  }
-  return { value: a, next: hold(a) }
+Hold.prototype.step = function step (t    , a )                    {
+  return a === undefined
+    ? { value: this.value, next: this }
+    : { value: a, next: hold(a) }
 };
 
 // Accumulate event
@@ -230,7 +230,7 @@ var Accum = function Accum(f                 , value ) {
   this.value = value
 };
 
-Accum.prototype.step = function step (t    , a )                      {
+Accum.prototype.step = function step (t    , a )                    {
   if(a === undefined) {
     return { value: NoEvent, next: this }
   }
@@ -330,9 +330,9 @@ ClockSession.prototype.step = function step ()                    {
 };
 
 //      
-                                      
+                                          
                                     
-function vdomUpdate            (patch                   , init       )                                               {
+function vdomUpdate               (patch                   , init       )                                                      {
   return first(scan(patch, init))
 }
 
@@ -722,7 +722,8 @@ function init(modules, api) {
 module.exports = {init: init};
 });
 
-var snabbdom$1 = interopDefault(snabbdom);
+interopDefault(snabbdom);
+var init = snabbdom.init;
 
 var eventlisteners = createCommonjsModule(function (module) {
 function invokeHandler(handler, vnode, event) {
@@ -830,6 +831,82 @@ module.exports = {
 
 var events = interopDefault(eventlisteners);
 
+var attributes = createCommonjsModule(function (module) {
+var booleanAttrs = ["allowfullscreen", "async", "autofocus", "autoplay", "checked", "compact", "controls", "declare",
+                "default", "defaultchecked", "defaultmuted", "defaultselected", "defer", "disabled", "draggable",
+                "enabled", "formnovalidate", "hidden", "indeterminate", "inert", "ismap", "itemscope", "loop", "multiple",
+                "muted", "nohref", "noresize", "noshade", "novalidate", "nowrap", "open", "pauseonexit", "readonly",
+                "required", "reversed", "scoped", "seamless", "selected", "sortable", "spellcheck", "translate",
+                "truespeed", "typemustmatch", "visible"];
+
+var booleanAttrsDict = {};
+for(var i=0, len = booleanAttrs.length; i < len; i++) {
+  booleanAttrsDict[booleanAttrs[i]] = true;
+}
+
+function updateAttrs(oldVnode, vnode) {
+  var key, cur, old, elm = vnode.elm,
+      oldAttrs = oldVnode.data.attrs, attrs = vnode.data.attrs;
+
+  if (!oldAttrs && !attrs) return;
+  oldAttrs = oldAttrs || {};
+  attrs = attrs || {};
+
+  // update modified attributes, add new attributes
+  for (key in attrs) {
+    cur = attrs[key];
+    old = oldAttrs[key];
+    if (old !== cur) {
+      // TODO: add support to namespaced attributes (setAttributeNS)
+      if(!cur && booleanAttrsDict[key])
+        elm.removeAttribute(key);
+      else
+        elm.setAttribute(key, cur);
+    }
+  }
+  //remove removed attributes
+  // use `in` operator since the previous `for` iteration uses it (.i.e. add even attributes with undefined value)
+  // the other option is to remove all attributes with value == undefined
+  for (key in oldAttrs) {
+    if (!(key in attrs)) {
+      elm.removeAttribute(key);
+    }
+  }
+}
+
+module.exports = {create: updateAttrs, update: updateAttrs};
+});
+
+interopDefault(attributes);
+
+var _class = createCommonjsModule(function (module) {
+function updateClass(oldVnode, vnode) {
+  var cur, name, elm = vnode.elm,
+      oldClass = oldVnode.data.class,
+      klass = vnode.data.class;
+
+  if (!oldClass && !klass) return;
+  oldClass = oldClass || {};
+  klass = klass || {};
+
+  for (name in oldClass) {
+    if (!klass[name]) {
+      elm.classList.remove(name);
+    }
+  }
+  for (name in klass) {
+    cur = klass[name];
+    if (cur !== oldClass[name]) {
+      elm.classList[cur ? 'add' : 'remove'](name);
+    }
+  }
+}
+
+module.exports = {create: updateClass, update: updateClass};
+});
+
+interopDefault(_class);
+
 var h = createCommonjsModule(function (module) {
 var VNode = interopDefault(require$$1);
 var is = interopDefault(require$$0);
@@ -867,10 +944,68 @@ module.exports = function h(sel, b, c) {
 };
 });
 
-var h$1 = interopDefault(h);
+var sh = interopDefault(h);
+
+var index = createCommonjsModule(function (module, exports) {
+'use strict';
+
+Object.defineProperty(exports, '__esModule', {
+  value: true
+});
+var isValidString = function isValidString(param) {
+  return typeof param === 'string' && param.length > 0;
+};
+
+var startsWith = function startsWith(string, start) {
+  return string[0] === start;
+};
+
+var isSelector = function isSelector(param) {
+  return isValidString(param) && (startsWith(param, '.') || startsWith(param, '#'));
+};
+
+var node = function node(h) {
+  return function (tagName) {
+    return function (first) {
+      var arguments$1 = arguments;
+
+      for (var _len = arguments.length, rest = Array(_len > 1 ? _len - 1 : 0), _key = 1; _key < _len; _key++) {
+        rest[_key - 1] = arguments$1[_key];
+      }
+
+      if (isSelector(first)) {
+        return h.apply(undefined, [tagName + first].concat(rest));
+      } else if (typeof first === 'undefined') {
+        return h(tagName);
+      } else {
+        return h.apply(undefined, [tagName, first].concat(rest));
+      }
+    };
+  };
+};
+
+var TAG_NAMES = ['a', 'abbr', 'acronym', 'address', 'applet', 'area', 'article', 'aside', 'audio', 'b', 'base', 'basefont', 'bdi', 'bdo', 'bgsound', 'big', 'blink', 'blockquote', 'body', 'br', 'button', 'canvas', 'caption', 'center', 'cite', 'code', 'col', 'colgroup', 'command', 'content', 'data', 'datalist', 'dd', 'del', 'details', 'dfn', 'dialog', 'dir', 'div', 'dl', 'dt', 'element', 'em', 'embed', 'fieldset', 'figcaption', 'figure', 'font', 'footer', 'form', 'frame', 'frameset', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'head', 'header', 'hgroup', 'hr', 'html', 'i', 'iframe', 'image', 'img', 'input', 'ins', 'isindex', 'kbd', 'keygen', 'label', 'legend', 'li', 'link', 'listing', 'main', 'map', 'mark', 'marquee', 'math', 'menu', 'menuitem', 'meta', 'meter', 'multicol', 'nav', 'nextid', 'nobr', 'noembed', 'noframes', 'noscript', 'object', 'ol', 'optgroup', 'option', 'output', 'p', 'param', 'picture', 'plaintext', 'pre', 'progress', 'q', 'rb', 'rbc', 'rp', 'rt', 'rtc', 'ruby', 's', 'samp', 'script', 'section', 'select', 'shadow', 'small', 'source', 'spacer', 'span', 'strike', 'strong', 'style', 'sub', 'summary', 'sup', 'svg', 'table', 'tbody', 'td', 'template', 'textarea', 'tfoot', 'th', 'thead', 'time', 'title', 'tr', 'track', 'tt', 'u', 'ul', 'var', 'video', 'wbr', 'xmp'];
+
+exports['default'] = function (h) {
+  var createTag = node(h);
+  var exported = { TAG_NAMES: TAG_NAMES, isSelector: isSelector, createTag: createTag };
+  TAG_NAMES.forEach(function (n) {
+    exported[n] = createTag(n);
+  });
+  return exported;
+};
+
+module.exports = exports['default'];
+});
+
+var hh = interopDefault(index);
+
+var html = hh(sh)
+
+var button = html.button;
 
 var container = document.getElementById('app')
-var patch = snabbdom$1.init([events])
+var patch = init([events])
 
 // Simple input that fires an event after ms millis
 var after = function (ms) { return function (f) {
@@ -884,7 +1019,7 @@ var render = function (count) {
   var click = ref[0];
   var reset = ref[1];
   return [
-    h$1('button', { on: { click: click } }, ("Seconds passed: " + count)),
+    button({ on: { click: click } }, ("Seconds passed: " + count)),
     both$1(reset, after(1000))
   ]
 }

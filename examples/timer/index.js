@@ -1,11 +1,10 @@
 import { lift, pipe, as, accum, or, bothI, newInput, clockSession, loop } from '../../src/index'
 import { vdomUpdate } from '../../src/vdom'
-import snabbdom from 'snabbdom'
-import events from 'snabbdom/modules/eventlisteners'
-import h from 'snabbdom/h'
+import { html, init, events } from '../vdom'
+const { button } = html
 
 const container = document.getElementById('app')
-const patch = snabbdom.init([events])
+const patch = init([events])
 
 // Simple input that fires an event after ms millis
 const after = ms => f => {
@@ -17,7 +16,7 @@ const after = ms => f => {
 const render = (count) => {
   const [click, reset] = newInput()
   return [
-    h('button', { on: { click } }, `Seconds passed: ${count}`),
+    button({ on: { click } }, `Seconds passed: ${count}`),
     bothI(reset, after(1000))
   ]
 }

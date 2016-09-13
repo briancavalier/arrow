@@ -1,18 +1,15 @@
 import { newInput, never, time, mapE, or, both, eventTime, unsplit, pipe, accum, clockSession, bothI, loop } from '../../src/index'
 import { vdomUpdate } from '../../src/vdom'
 import { animationFrames } from '../../src/dom'
-import snabbdom from 'snabbdom'
-import events from 'snabbdom/modules/eventlisteners'
-import attrs from 'snabbdom/modules/attributes'
-import clss from 'snabbdom/modules/class'
-import h from 'snabbdom/h'
+import { html, init, events, attrs, clss } from '../vdom'
+const { div, span, ol, li, button } = html
 
 // TODO: combining many inputs and signals. Need a better way
 const anyInput = (...inputs) => inputs.reduce(bothI)
 const anySignal = (...signals) => signals.reduce(or)
 
 const container = document.getElementById('app')
-const patch = snabbdom.init([events, attrs, clss])
+const patch = init([events, attrs, clss])
 
 const [start, startInput] = newInput()
 const [stop, stopInput] = newInput()
@@ -28,15 +25,15 @@ const runningInputs = anyInput(timerInputs, animationFrames)
 const render = (timer, time) => {
   const elapsed = timerElapsed(time, timer)
   const zero = elapsed === 0
-  const vtree = h('div.timer', { class: { running: timer.running, zero } }, [
-    h('div.elapsed', renderDuration(elapsed)),
-    h('div.lap-elapsed', renderDuration(timerCurrentLap(time, timer))),
-    h('button.reset', { on: { click: reset }, attrs: { disabled: timer.running || zero } }, 'Reset'),
-    h('button.start', { on: { click: start } }, 'Start'),
-    h('button.stop', { on: { click: stop } }, 'Stop'),
-    h('button.lap', { on: { click: lap }, attrs: { disabled: !timer.running } }, 'Lap'),
-    h('ol.laps', { attrs: { reversed: true } }, timer.laps.map(({ start, end }) =>
-      h('li', renderDuration(end - start)))
+  const vtree = div('.timer', { class: { running: timer.running, zero } }, [
+    div('.elapsed', renderDuration(elapsed)),
+    div('.lap-elapsed', renderDuration(timerCurrentLap(time, timer))),
+    button('.reset', { on: { click: reset }, attrs: { disabled: timer.running || zero } }, 'Reset'),
+    button('.start', { on: { click: start } }, 'Start'),
+    button('.stop', { on: { click: stop } }, 'Stop'),
+    button('.lap', { on: { click: lap }, attrs: { disabled: !timer.running } }, 'Lap'),
+    ol('.laps', { attrs: { reversed: true } }, timer.laps.map(({ start, end }) =>
+      li(renderDuration(end - start)))
     )
   ])
 
@@ -45,9 +42,9 @@ const render = (timer, time) => {
 
 // Timer formatting
 const renderDuration = ms => [
-  h('span.minutes', `${mins(ms)}`),
-  h('span.seconds', `${secs(ms)}`),
-  h('span.hundredths', `${hundredths(ms)}`)
+  span('.minutes', `${mins(ms)}`),
+  span('.seconds', `${secs(ms)}`),
+  span('.hundredths', `${hundredths(ms)}`)
 ]
 
 const mins = ms => pad((ms / (1000 * 60)) % 60)

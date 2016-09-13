@@ -110,7 +110,7 @@ Both.prototype.step = function step$5 (t, ref) {
 };
 
 //      
-                                                        
+                                                      
 // An event, which has a value when it occurs, and
 // has no value when it doesn't occur
                              
@@ -137,11 +137,10 @@ var Hold = function Hold (value ) {
   this.value = value
 };
 
-Hold.prototype.step = function step (t    , a )                      {
-  if(a === undefined) {
-    return { value: this.value, next: this }
-  }
-  return { value: a, next: hold(a) }
+Hold.prototype.step = function step (t    , a )                    {
+  return a === undefined
+    ? { value: this.value, next: this }
+    : { value: a, next: hold(a) }
 };
 
 //      
