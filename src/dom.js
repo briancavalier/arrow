@@ -1,6 +1,5 @@
 // @flow
 import type { Input } from './input'
-import { schedule } from './input'
 
 /* global EventTarget, Event */
 
@@ -19,3 +18,5 @@ export const animationFrames = f => {
   const handle = requestAnimationFrame(f)
   return () => cancelAnimationFrame(handle)
 }
+
+

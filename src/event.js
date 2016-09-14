@@ -70,10 +70,6 @@ export function sample <A, B> (): SFTime<[Evt<A>, B], Evt<[A, B]>> {
   return sampleWith(pair)
 }
 
-export function sampleR <A, B> (): SFTime<[Evt<A>, B], Evt<B>> {
-  return sampleWith(snd)
-}
-
 // Merge events, preferring the left in the case of
 // simultaneous occurrence
 export function merge <A> (): SFTime<[Evt<A>, Evt<A>], Evt<A>> {
@@ -83,10 +79,6 @@ export function merge <A> (): SFTime<[Evt<A>, Evt<A>], Evt<A>> {
 // Merge event SignalFuncs
 export function or <A, B> (left: SFTime<Evt<A>, Evt<B>>, right: SFTime<Evt<A>, Evt<B>>): SFTime<Evt<A>, Evt<B>> {
   return liftE(pipe(both(left, right), merge()))
-}
-
-export function filter <A> (p: (a: A) => boolean): SFTime<Evt<A>, Evt<B>> {
-  return mapE(map(a => p(a) ? a : NoEvent))
 }
 
 // Turn an event into a stepped continuous value

@@ -319,13 +319,6 @@ ClockSession.prototype.step = function step ()                    {
   return sessionStep(this.time, new ClockSession(this.start))
 };
 
-//      
-                                          
-                                    
-function vdomUpdate               (patch                   , init       )                                                      {
-  return first(scan(patch, init))
-}
-
 function interopDefault(ex) {
 	return ex && typeof ex === 'object' && 'default' in ex ? ex['default'] : ex;
 }
@@ -333,6 +326,188 @@ function interopDefault(ex) {
 function createCommonjsModule(fn, module) {
 	return module = { exports: {} }, fn(module, module.exports), module.exports;
 }
+
+var eventlisteners = createCommonjsModule(function (module) {
+function invokeHandler(handler, vnode, event) {
+  if (typeof handler === "function") {
+    // call function handler
+    handler.call(vnode, event, vnode);
+  } else if (typeof handler === "object") {
+    // call handler with arguments
+    if (typeof handler[0] === "function") {
+      // special case for single argument for performance
+      if (handler.length === 2) {
+        handler[0].call(vnode, handler[1], event, vnode);
+      } else {
+        var args = handler.slice(1);
+        args.push(event);
+        args.push(vnode);
+        handler[0].apply(vnode, args);
+      }
+    } else {
+      // call multiple handlers
+      for (var i = 0; i < handler.length; i++) {
+        invokeHandler(handler[i]);
+      }
+    }
+  }
+}
+
+function handleEvent(event, vnode) {
+  var name = event.type,
+      on = vnode.data.on;
+
+  // call event handler(s) if exists
+  if (on && on[name]) {
+    invokeHandler(on[name], vnode, event);
+  }
+}
+
+function createListener() {
+  return function handler(event) {
+    handleEvent(event, handler.vnode);
+  }
+}
+
+function updateEventListeners(oldVnode, vnode) {
+  var oldOn = oldVnode.data.on,
+      oldListener = oldVnode.listener,
+      oldElm = oldVnode.elm,
+      on = vnode && vnode.data.on,
+      elm = vnode && vnode.elm,
+      name;
+
+  // optimization for reused immutable handlers
+  if (oldOn === on) {
+    return;
+  }
+
+  // remove existing listeners which no longer used
+  if (oldOn && oldListener) {
+    // if element changed or deleted we remove all existing listeners unconditionally
+    if (!on) {
+      for (name in oldOn) {
+        // remove listener if element was changed or existing listeners removed
+        oldElm.removeEventListener(name, oldListener, false);
+      }
+    } else {
+      for (name in oldOn) {
+        // remove listener if existing listener removed
+        if (!on[name]) {
+          oldElm.removeEventListener(name, oldListener, false);
+        }
+      }
+    }
+  }
+
+  // add new listeners which has not already attached
+  if (on) {
+    // reuse existing listener or create new
+    var listener = vnode.listener = oldVnode.listener || createListener();
+    // update vnode for listener
+    listener.vnode = vnode;
+
+    // if element changed or added we add all needed listeners unconditionally
+    if (!oldOn) {
+      for (name in on) {
+        // add listener if element was changed or new listeners added
+        elm.addEventListener(name, listener, false);
+      }
+    } else {
+      for (name in on) {
+        // add listener if new listener added
+        if (!oldOn[name]) {
+          elm.addEventListener(name, listener, false);
+        }
+      }
+    }
+  }
+}
+
+module.exports = {
+  create: updateEventListeners,
+  update: updateEventListeners,
+  destroy: updateEventListeners
+};
+});
+
+var events = interopDefault(eventlisteners);
+
+var attributes = createCommonjsModule(function (module) {
+var booleanAttrs = ["allowfullscreen", "async", "autofocus", "autoplay", "checked", "compact", "controls", "declare",
+                "default", "defaultchecked", "defaultmuted", "defaultselected", "defer", "disabled", "draggable",
+                "enabled", "formnovalidate", "hidden", "indeterminate", "inert", "ismap", "itemscope", "loop", "multiple",
+                "muted", "nohref", "noresize", "noshade", "novalidate", "nowrap", "open", "pauseonexit", "readonly",
+                "required", "reversed", "scoped", "seamless", "selected", "sortable", "spellcheck", "translate",
+                "truespeed", "typemustmatch", "visible"];
+
+var booleanAttrsDict = {};
+for(var i=0, len = booleanAttrs.length; i < len; i++) {
+  booleanAttrsDict[booleanAttrs[i]] = true;
+}
+
+function updateAttrs(oldVnode, vnode) {
+  var key, cur, old, elm = vnode.elm,
+      oldAttrs = oldVnode.data.attrs, attrs = vnode.data.attrs;
+
+  if (!oldAttrs && !attrs) return;
+  oldAttrs = oldAttrs || {};
+  attrs = attrs || {};
+
+  // update modified attributes, add new attributes
+  for (key in attrs) {
+    cur = attrs[key];
+    old = oldAttrs[key];
+    if (old !== cur) {
+      // TODO: add support to namespaced attributes (setAttributeNS)
+      if(!cur && booleanAttrsDict[key])
+        elm.removeAttribute(key);
+      else
+        elm.setAttribute(key, cur);
+    }
+  }
+  //remove removed attributes
+  // use `in` operator since the previous `for` iteration uses it (.i.e. add even attributes with undefined value)
+  // the other option is to remove all attributes with value == undefined
+  for (key in oldAttrs) {
+    if (!(key in attrs)) {
+      elm.removeAttribute(key);
+    }
+  }
+}
+
+module.exports = {create: updateAttrs, update: updateAttrs};
+});
+
+interopDefault(attributes);
+
+var _class = createCommonjsModule(function (module) {
+function updateClass(oldVnode, vnode) {
+  var cur, name, elm = vnode.elm,
+      oldClass = oldVnode.data.class,
+      klass = vnode.data.class;
+
+  if (!oldClass && !klass) return;
+  oldClass = oldClass || {};
+  klass = klass || {};
+
+  for (name in oldClass) {
+    if (!klass[name]) {
+      elm.classList.remove(name);
+    }
+  }
+  for (name in klass) {
+    cur = klass[name];
+    if (cur !== oldClass[name]) {
+      elm.classList[cur ? 'add' : 'remove'](name);
+    }
+  }
+}
+
+module.exports = {create: updateClass, update: updateClass};
+});
+
+interopDefault(_class);
 
 var vnode = createCommonjsModule(function (module) {
 module.exports = function(sel, data, children, text, elm) {
@@ -345,7 +520,7 @@ module.exports = function(sel, data, children, text, elm) {
 var vnode$1 = interopDefault(vnode);
 
 
-var require$$1 = Object.freeze({
+var require$$2 = Object.freeze({
   default: vnode$1
 });
 
@@ -360,11 +535,104 @@ var is$1 = interopDefault(is);
 var array = is.array;
 var primitive = is.primitive;
 
-var require$$0 = Object.freeze({
+var require$$1 = Object.freeze({
   default: is$1,
   array: array,
   primitive: primitive
 });
+
+var h = createCommonjsModule(function (module) {
+var VNode = interopDefault(require$$2);
+var is = interopDefault(require$$1);
+
+function addNS(data, children, sel) {
+  data.ns = 'http://www.w3.org/2000/svg';
+
+  if (sel !== 'foreignObject' && children !== undefined) {
+    for (var i = 0; i < children.length; ++i) {
+      addNS(children[i].data, children[i].children, children[i].sel);
+    }
+  }
+}
+
+module.exports = function h(sel, b, c) {
+  var data = {}, children, text, i;
+  if (c !== undefined) {
+    data = b;
+    if (is.array(c)) { children = c; }
+    else if (is.primitive(c)) { text = c; }
+  } else if (b !== undefined) {
+    if (is.array(b)) { children = b; }
+    else if (is.primitive(b)) { text = b; }
+    else { data = b; }
+  }
+  if (is.array(children)) {
+    for (i = 0; i < children.length; ++i) {
+      if (is.primitive(children[i])) children[i] = VNode(undefined, undefined, undefined, children[i]);
+    }
+  }
+  if (sel[0] === 's' && sel[1] === 'v' && sel[2] === 'g') {
+    addNS(data, children, sel);
+  }
+  return VNode(sel, data, children, text, undefined);
+};
+});
+
+var sh = interopDefault(h);
+
+var index = createCommonjsModule(function (module, exports) {
+'use strict';
+
+Object.defineProperty(exports, '__esModule', {
+  value: true
+});
+var isValidString = function isValidString(param) {
+  return typeof param === 'string' && param.length > 0;
+};
+
+var startsWith = function startsWith(string, start) {
+  return string[0] === start;
+};
+
+var isSelector = function isSelector(param) {
+  return isValidString(param) && (startsWith(param, '.') || startsWith(param, '#'));
+};
+
+var node = function node(h) {
+  return function (tagName) {
+    return function (first) {
+      var arguments$1 = arguments;
+
+      for (var _len = arguments.length, rest = Array(_len > 1 ? _len - 1 : 0), _key = 1; _key < _len; _key++) {
+        rest[_key - 1] = arguments$1[_key];
+      }
+
+      if (isSelector(first)) {
+        return h.apply(undefined, [tagName + first].concat(rest));
+      } else if (typeof first === 'undefined') {
+        return h(tagName);
+      } else {
+        return h.apply(undefined, [tagName, first].concat(rest));
+      }
+    };
+  };
+};
+
+var TAG_NAMES = ['a', 'abbr', 'acronym', 'address', 'applet', 'area', 'article', 'aside', 'audio', 'b', 'base', 'basefont', 'bdi', 'bdo', 'bgsound', 'big', 'blink', 'blockquote', 'body', 'br', 'button', 'canvas', 'caption', 'center', 'cite', 'code', 'col', 'colgroup', 'command', 'content', 'data', 'datalist', 'dd', 'del', 'details', 'dfn', 'dialog', 'dir', 'div', 'dl', 'dt', 'element', 'em', 'embed', 'fieldset', 'figcaption', 'figure', 'font', 'footer', 'form', 'frame', 'frameset', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'head', 'header', 'hgroup', 'hr', 'html', 'i', 'iframe', 'image', 'img', 'input', 'ins', 'isindex', 'kbd', 'keygen', 'label', 'legend', 'li', 'link', 'listing', 'main', 'map', 'mark', 'marquee', 'math', 'menu', 'menuitem', 'meta', 'meter', 'multicol', 'nav', 'nextid', 'nobr', 'noembed', 'noframes', 'noscript', 'object', 'ol', 'optgroup', 'option', 'output', 'p', 'param', 'picture', 'plaintext', 'pre', 'progress', 'q', 'rb', 'rbc', 'rp', 'rt', 'rtc', 'ruby', 's', 'samp', 'script', 'section', 'select', 'shadow', 'small', 'source', 'spacer', 'span', 'strike', 'strong', 'style', 'sub', 'summary', 'sup', 'svg', 'table', 'tbody', 'td', 'template', 'textarea', 'tfoot', 'th', 'thead', 'time', 'title', 'tr', 'track', 'tt', 'u', 'ul', 'var', 'video', 'wbr', 'xmp'];
+
+exports['default'] = function (h) {
+  var createTag = node(h);
+  var exported = { TAG_NAMES: TAG_NAMES, isSelector: isSelector, createTag: createTag };
+  TAG_NAMES.forEach(function (n) {
+    exported[n] = createTag(n);
+  });
+  return exported;
+};
+
+module.exports = exports['default'];
+});
+
+var hh = interopDefault(index);
 
 var htmldomapi = createCommonjsModule(function (module) {
 function createElement(tagName){
@@ -435,7 +703,7 @@ var nextSibling = htmldomapi.nextSibling;
 var tagName = htmldomapi.tagName;
 var setTextContent = htmldomapi.setTextContent;
 
-var require$$0$1 = Object.freeze({
+var require$$0 = Object.freeze({
   default: htmldomapi$1,
   createElement: createElement,
   createElementNS: createElementNS,
@@ -454,9 +722,9 @@ var snabbdom = createCommonjsModule(function (module) {
 /* global require, module, document, Node */
 'use strict';
 
-var VNode = interopDefault(require$$1);
-var is = interopDefault(require$$0);
-var domApi = interopDefault(require$$0$1);
+var VNode = interopDefault(require$$2);
+var is = interopDefault(require$$1);
+var domApi = interopDefault(require$$0);
 
 function isUndef(s) { return s === undefined; }
 function isDef(s) { return s !== undefined; }
@@ -715,282 +983,16 @@ module.exports = {init: init};
 interopDefault(snabbdom);
 var init = snabbdom.init;
 
-var eventlisteners = createCommonjsModule(function (module) {
-function invokeHandler(handler, vnode, event) {
-  if (typeof handler === "function") {
-    // call function handler
-    handler.call(vnode, event, vnode);
-  } else if (typeof handler === "object") {
-    // call handler with arguments
-    if (typeof handler[0] === "function") {
-      // special case for single argument for performance
-      if (handler.length === 2) {
-        handler[0].call(vnode, handler[1], event, vnode);
-      } else {
-        var args = handler.slice(1);
-        args.push(event);
-        args.push(vnode);
-        handler[0].apply(vnode, args);
-      }
-    } else {
-      // call multiple handlers
-      for (var i = 0; i < handler.length; i++) {
-        invokeHandler(handler[i]);
-      }
-    }
-  }
-}
-
-function handleEvent(event, vnode) {
-  var name = event.type,
-      on = vnode.data.on;
-
-  // call event handler(s) if exists
-  if (on && on[name]) {
-    invokeHandler(on[name], vnode, event);
-  }
-}
-
-function createListener() {
-  return function handler(event) {
-    handleEvent(event, handler.vnode);
-  }
-}
-
-function updateEventListeners(oldVnode, vnode) {
-  var oldOn = oldVnode.data.on,
-      oldListener = oldVnode.listener,
-      oldElm = oldVnode.elm,
-      on = vnode && vnode.data.on,
-      elm = vnode && vnode.elm,
-      name;
-
-  // optimization for reused immutable handlers
-  if (oldOn === on) {
-    return;
-  }
-
-  // remove existing listeners which no longer used
-  if (oldOn && oldListener) {
-    // if element changed or deleted we remove all existing listeners unconditionally
-    if (!on) {
-      for (name in oldOn) {
-        // remove listener if element was changed or existing listeners removed
-        oldElm.removeEventListener(name, oldListener, false);
-      }
-    } else {
-      for (name in oldOn) {
-        // remove listener if existing listener removed
-        if (!on[name]) {
-          oldElm.removeEventListener(name, oldListener, false);
-        }
-      }
-    }
-  }
-
-  // add new listeners which has not already attached
-  if (on) {
-    // reuse existing listener or create new
-    var listener = vnode.listener = oldVnode.listener || createListener();
-    // update vnode for listener
-    listener.vnode = vnode;
-
-    // if element changed or added we add all needed listeners unconditionally
-    if (!oldOn) {
-      for (name in on) {
-        // add listener if element was changed or new listeners added
-        elm.addEventListener(name, listener, false);
-      }
-    } else {
-      for (name in on) {
-        // add listener if new listener added
-        if (!oldOn[name]) {
-          elm.addEventListener(name, listener, false);
-        }
-      }
-    }
-  }
-}
-
-module.exports = {
-  create: updateEventListeners,
-  update: updateEventListeners,
-  destroy: updateEventListeners
-};
-});
-
-var events = interopDefault(eventlisteners);
-
-var attributes = createCommonjsModule(function (module) {
-var booleanAttrs = ["allowfullscreen", "async", "autofocus", "autoplay", "checked", "compact", "controls", "declare",
-                "default", "defaultchecked", "defaultmuted", "defaultselected", "defer", "disabled", "draggable",
-                "enabled", "formnovalidate", "hidden", "indeterminate", "inert", "ismap", "itemscope", "loop", "multiple",
-                "muted", "nohref", "noresize", "noshade", "novalidate", "nowrap", "open", "pauseonexit", "readonly",
-                "required", "reversed", "scoped", "seamless", "selected", "sortable", "spellcheck", "translate",
-                "truespeed", "typemustmatch", "visible"];
-
-var booleanAttrsDict = {};
-for(var i=0, len = booleanAttrs.length; i < len; i++) {
-  booleanAttrsDict[booleanAttrs[i]] = true;
-}
-
-function updateAttrs(oldVnode, vnode) {
-  var key, cur, old, elm = vnode.elm,
-      oldAttrs = oldVnode.data.attrs, attrs = vnode.data.attrs;
-
-  if (!oldAttrs && !attrs) return;
-  oldAttrs = oldAttrs || {};
-  attrs = attrs || {};
-
-  // update modified attributes, add new attributes
-  for (key in attrs) {
-    cur = attrs[key];
-    old = oldAttrs[key];
-    if (old !== cur) {
-      // TODO: add support to namespaced attributes (setAttributeNS)
-      if(!cur && booleanAttrsDict[key])
-        elm.removeAttribute(key);
-      else
-        elm.setAttribute(key, cur);
-    }
-  }
-  //remove removed attributes
-  // use `in` operator since the previous `for` iteration uses it (.i.e. add even attributes with undefined value)
-  // the other option is to remove all attributes with value == undefined
-  for (key in oldAttrs) {
-    if (!(key in attrs)) {
-      elm.removeAttribute(key);
-    }
-  }
-}
-
-module.exports = {create: updateAttrs, update: updateAttrs};
-});
-
-interopDefault(attributes);
-
-var _class = createCommonjsModule(function (module) {
-function updateClass(oldVnode, vnode) {
-  var cur, name, elm = vnode.elm,
-      oldClass = oldVnode.data.class,
-      klass = vnode.data.class;
-
-  if (!oldClass && !klass) return;
-  oldClass = oldClass || {};
-  klass = klass || {};
-
-  for (name in oldClass) {
-    if (!klass[name]) {
-      elm.classList.remove(name);
-    }
-  }
-  for (name in klass) {
-    cur = klass[name];
-    if (cur !== oldClass[name]) {
-      elm.classList[cur ? 'add' : 'remove'](name);
-    }
-  }
-}
-
-module.exports = {create: updateClass, update: updateClass};
-});
-
-interopDefault(_class);
-
-var h = createCommonjsModule(function (module) {
-var VNode = interopDefault(require$$1);
-var is = interopDefault(require$$0);
-
-function addNS(data, children, sel) {
-  data.ns = 'http://www.w3.org/2000/svg';
-
-  if (sel !== 'foreignObject' && children !== undefined) {
-    for (var i = 0; i < children.length; ++i) {
-      addNS(children[i].data, children[i].children, children[i].sel);
-    }
-  }
-}
-
-module.exports = function h(sel, b, c) {
-  var data = {}, children, text, i;
-  if (c !== undefined) {
-    data = b;
-    if (is.array(c)) { children = c; }
-    else if (is.primitive(c)) { text = c; }
-  } else if (b !== undefined) {
-    if (is.array(b)) { children = b; }
-    else if (is.primitive(b)) { text = b; }
-    else { data = b; }
-  }
-  if (is.array(children)) {
-    for (i = 0; i < children.length; ++i) {
-      if (is.primitive(children[i])) children[i] = VNode(undefined, undefined, undefined, children[i]);
-    }
-  }
-  if (sel[0] === 's' && sel[1] === 'v' && sel[2] === 'g') {
-    addNS(data, children, sel);
-  }
-  return VNode(sel, data, children, text, undefined);
-};
-});
-
-var sh = interopDefault(h);
-
-var index = createCommonjsModule(function (module, exports) {
-'use strict';
-
-Object.defineProperty(exports, '__esModule', {
-  value: true
-});
-var isValidString = function isValidString(param) {
-  return typeof param === 'string' && param.length > 0;
-};
-
-var startsWith = function startsWith(string, start) {
-  return string[0] === start;
-};
-
-var isSelector = function isSelector(param) {
-  return isValidString(param) && (startsWith(param, '.') || startsWith(param, '#'));
-};
-
-var node = function node(h) {
-  return function (tagName) {
-    return function (first) {
-      var arguments$1 = arguments;
-
-      for (var _len = arguments.length, rest = Array(_len > 1 ? _len - 1 : 0), _key = 1; _key < _len; _key++) {
-        rest[_key - 1] = arguments$1[_key];
-      }
-
-      if (isSelector(first)) {
-        return h.apply(undefined, [tagName + first].concat(rest));
-      } else if (typeof first === 'undefined') {
-        return h(tagName);
-      } else {
-        return h.apply(undefined, [tagName, first].concat(rest));
-      }
-    };
-  };
-};
-
-var TAG_NAMES = ['a', 'abbr', 'acronym', 'address', 'applet', 'area', 'article', 'aside', 'audio', 'b', 'base', 'basefont', 'bdi', 'bdo', 'bgsound', 'big', 'blink', 'blockquote', 'body', 'br', 'button', 'canvas', 'caption', 'center', 'cite', 'code', 'col', 'colgroup', 'command', 'content', 'data', 'datalist', 'dd', 'del', 'details', 'dfn', 'dialog', 'dir', 'div', 'dl', 'dt', 'element', 'em', 'embed', 'fieldset', 'figcaption', 'figure', 'font', 'footer', 'form', 'frame', 'frameset', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'head', 'header', 'hgroup', 'hr', 'html', 'i', 'iframe', 'image', 'img', 'input', 'ins', 'isindex', 'kbd', 'keygen', 'label', 'legend', 'li', 'link', 'listing', 'main', 'map', 'mark', 'marquee', 'math', 'menu', 'menuitem', 'meta', 'meter', 'multicol', 'nav', 'nextid', 'nobr', 'noembed', 'noframes', 'noscript', 'object', 'ol', 'optgroup', 'option', 'output', 'p', 'param', 'picture', 'plaintext', 'pre', 'progress', 'q', 'rb', 'rbc', 'rp', 'rt', 'rtc', 'ruby', 's', 'samp', 'script', 'section', 'select', 'shadow', 'small', 'source', 'spacer', 'span', 'strike', 'strong', 'style', 'sub', 'summary', 'sup', 'svg', 'table', 'tbody', 'td', 'template', 'textarea', 'tfoot', 'th', 'thead', 'time', 'title', 'tr', 'track', 'tt', 'u', 'ul', 'var', 'video', 'wbr', 'xmp'];
-
-exports['default'] = function (h) {
-  var createTag = node(h);
-  var exported = { TAG_NAMES: TAG_NAMES, isSelector: isSelector, createTag: createTag };
-  TAG_NAMES.forEach(function (n) {
-    exported[n] = createTag(n);
-  });
-  return exported;
-};
-
-module.exports = exports['default'];
-});
-
-var hh = interopDefault(index);
-
+//      
+                                          
+                                    
 var html = hh(sh)
+
+                                                                      
+
+function vdomPatch               (patch                   , init       )                                                      {
+  return first(scan(patch, init))
+}
 
 //      
 var div = html.div;
@@ -1019,7 +1021,7 @@ var counter = pipe(or(as(1), as(-1)), scan(add, 0))
 var ref$2 = render(0);
 var vtree = ref$2[0];
 var inputs = ref$2[1];
-var update = vdomUpdate(patch, patch(container, vtree));
+var update = vdomPatch(patch, patch(container, vtree));
 var runCounter = pipe(counter, lift(render), update)
 
 loop(clockSession(), inputs, runCounter)

@@ -1,7 +1,6 @@
 import { newInput, never, time, mapE, or, both, eventTime, unsplit, pipe, accum, clockSession, bothI, loop } from '../../src/index'
-import { vdomUpdate } from '../../src/vdom'
 import { animationFrames } from '../../src/dom'
-import { html, init, events, attrs, clss } from '../vdom'
+import { html, init, events, attrs, clss, vdomPatch } from '../../src/vdom'
 const { div, span, ol, li, button } = html
 
 // TODO: combining many inputs and signals. Need a better way
@@ -84,6 +83,6 @@ const runTimer = both(timer, time)
 const displayTimer = unsplit(render)
 
 const [vtree, inputs] = render(timerZero, 0)
-const updateTimer = pipe(runTimer, displayTimer, vdomUpdate(patch, patch(container, vtree)))
+const updateTimer = pipe(runTimer, displayTimer, vdomPatch(patch, patch(container, vtree)))
 
 loop(clockSession(), inputs, updateTimer)

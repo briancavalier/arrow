@@ -1,6 +1,5 @@
 import { lift, pipe, as, accum, or, bothI, newInput, clockSession, loop } from '../../src/index'
-import { vdomUpdate } from '../../src/vdom'
-import { html, init, events } from '../vdom'
+import { html, init, events, vdomPatch } from '../../src/vdom'
 const { button } = html
 
 const container = document.getElementById('app')
@@ -29,7 +28,7 @@ const counter = pipe(or(reset, inc), accum(0), lift(render))
 const [vtree, input] = render(0)
 
 // Append vdom updater to counter component
-const update = vdomUpdate(patch, patch(container, vtree))
+const update = vdomPatch(patch, patch(container, vtree))
 const updateCounter = pipe(counter, update)
 
 // Run it
