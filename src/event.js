@@ -1,7 +1,7 @@
 // @flow
 import type { SFTime, StepTime, Time } from './signal'
 import { both, pipe, lift, unsplit } from './signal'
-import { snd, pair } from './pair'
+import { pair } from './pair'
 
 // An event, which has a value when it occurs, and
 // has no value when it doesn't occur
@@ -35,7 +35,7 @@ class LiftE <A, B> {
   }
 
   step (t: Time, a: Evt<A>): StepTime<Evt<A>, Evt<B>> {
-    if(a === undefined) {
+    if (a === undefined) {
       return { value: NoEvent, next: this }
     }
     const { value, next } = this.ab.step(t, a)
@@ -124,13 +124,13 @@ class Accum <A, B> {
   f: (b: B, a: A) => B
   value: B
 
-  constructor(f: (b: B, a: A) => B, value: B) {
+  constructor (f: (b: B, a: A) => B, value: B) {
     this.f = f
     this.value = value
   }
 
   step (t: Time, a: A): StepTime<Evt<A>, B> {
-    if(a === undefined) {
+    if (a === undefined) {
       return { value: NoEvent, next: this }
     }
     const f = this.f

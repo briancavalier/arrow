@@ -1,7 +1,7 @@
 // @flow
 import type { Input } from './input'
 
-/* global EventTarget, Event */
+/* global EventTarget, Event, requestAnimationFrame, cancelAnimationFrame */
 
 export type DomInput = (name: string) => (node: EventTarget) => Input<Event>
 
@@ -18,5 +18,3 @@ export const animationFrames = f => {
   const handle = requestAnimationFrame(f)
   return () => cancelAnimationFrame(handle)
 }
-
-

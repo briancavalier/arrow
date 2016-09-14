@@ -29,7 +29,7 @@ const noop = () => {}
 export function newInput <A> (): [Occur<A>, Input<A>] {
   let _occur
   const occur = (x) => {
-    if(typeof _occur === 'function') {
+    if (typeof _occur === 'function') {
       _occur(x)
     }
   }

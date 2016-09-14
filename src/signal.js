@@ -68,7 +68,8 @@ class Lift<A, B> {
   }
 
   step (t: Time, a: A): StepTime<A, B> {
-    return step(this.f(a), this)
+    const f = this.f
+    return step(f(a), this)
   }
 }
 
@@ -128,46 +129,68 @@ class Unfirst<A, B, C> {
 
 // pipe :: (SFTime a b ... SFTime y z) -> SFTime a z
 // Compose many Reactive transformations, left to right
-export const pipe = (ab, ...rest) => rest.reduce(pipe2, ab)
+export function pipe <A, B> (ab: SFTime<A, B>, ...rest: Array<SFTime<any, any>>): SFTime<A, any> {
+  return rest.reduce(pipe2, ab)
+}
 
 // pipe2 :: SFTime a b -> SFTime b c -> SFTime a c
 // Compose 2 Reactive transformations left to right
-const pipe2 = (ab, bc) => new Pipe(ab, bc)
+export function pipe2 <A, B, C> (ab: SFTime<A, B>, bc: SFTime<B, C>): SFTime<A, C> {
+  return new Pipe(ab, bc)
+}
 
-export const dimap = (fab, fcd, bc) => pipe(lift(fab), bc, lift(fcd))
-export const lmap = (fab, bc) => pipe2(lift(fab), bc)
-export const rmap = (fbc, ab) => pipe2(ab, lift(fbc))
+export function dimap <A, B, C, D> (fab: (a: A) => B, fcd: (c: C) => D, bc: SFTime<B, C>): SFTime<A, D> {
+  return pipe2(pipe2(lift(fab), bc), lift(fcd))
+}
 
-class Pipe {
-  constructor (ab, bc) {
+export function lmap <A, B, C> (fab: (a: A) => B, bc: SFTime<B, C>): SFTime<A, C> {
+  return pipe2(lift(fab), bc)
+}
+
+export function rmap <A, B, C> (fbc: (b: B) => C, ab: SFTime<A, B>): SFTime<A, C> {
+  return pipe2(ab, lift(fbc))
+}
+
+class Pipe<A, B, C> {
+  ab: SFTime<A, B>
+  bc: SFTime<B, C>
+
+  constructor (ab: SFTime<A, B>, bc: SFTime<B, C>) {
     this.ab = ab
     this.bc = bc
   }
 
-  step (t, a) {
+  step (t: Time, a: A): StepTime<A, C> {
     const { value: b, next: ab } = this.ab.step(t, a)
     const { value: c, next: bc } = this.bc.step(t, b)
-    return step(c, pipe(ab, bc))
+    return step(c, pipe2(ab, bc))
   }
 }
 
 // split :: SFTime a b -> SFTime a c -> SFTime [b, c]
 // Duplicates input a and pass it through Reactive transformations
 // ab and ac to yield [b, c]
-export const split = (ab, ac) => lmap(dup, both(ab, ac))
+export function split <A, B, C> (ab: SFTime<A, B>, ac: SFTime<A, C>): SFTime<A, [B, C]> {
+  return lmap(dup, both(ab, ac))
+}
 
-// both :: SFTime a b -> SFTime c d -> Reactive [a, b] [c, d]
+// both :: SFTime a b -> SFTime c d -> Reactive [a, c] [b, d]
 // Given an [a, c] input, pass a through Reactive transformation ab and
 // c through Reactive transformation cd to yield [b, d]
-export const both = (ab, cd) => new Both(ab, cd)
+export function both <A, B, C, D> (ab: SFTime<A, B>, cd: SFTime<C, D>): SFTime<[A, C], [B, D]> {
+  return new Both(ab, cd)
+}
 
-class Both {
-  constructor (ab, cd) {
+class Both<A, B, C, D> {
+  ab: SFTime<A, B>
+  cd: SFTime<C, D>
+
+  constructor (ab: SFTime<A, B>, cd: SFTime<C, D>) {
     this.ab = ab
     this.cd = cd
   }
 
-  step (t, [a, c]) {
+  step (t: Time, [a, c]: [A, C]): StepTime<[A, C], [B, D]> {
     const { value: b, next: anext } = this.ab.step(t, a)
     const { value: d, next: cnext } = this.cd.step(t, c)
     return step([b, d], both(anext, cnext))

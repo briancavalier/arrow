@@ -55,7 +55,8 @@ var Lift = function Lift (f           ) {
 };
 
 Lift.prototype.step = function step$1 (t    , a )               {
-  return step(this.f(a), this)
+  var f = this.f
+  return step(f(a), this)
 };
 
 // first  :: SFTime a b -> SFTime [a, c] [b, c]
@@ -80,43 +81,47 @@ First.prototype.step = function step$2 (t    , ref      )                       
 
 // pipe :: (SFTime a b ... SFTime y z) -> SFTime a z
 // Compose many Reactive transformations, left to right
-var pipe = function (ab) {
+function pipe        (ab                         )                 {
   var rest = [], len = arguments.length - 1;
   while ( len-- > 0 ) rest[ len ] = arguments[ len + 1 ];
 
-  return rest.reduce(pipe2, ab);
+  return rest.reduce(pipe2, ab)
 }
 
 // pipe2 :: SFTime a b -> SFTime b c -> SFTime a c
 // Compose 2 Reactive transformations left to right
-var pipe2 = function (ab, bc) { return new Pipe(ab, bc); }
+function pipe2           (ab              , bc              )               {
+  return new Pipe(ab, bc)
+}
 
-var Pipe = function Pipe (ab, bc) {
+var Pipe = function Pipe (ab            , bc            ) {
   this.ab = ab
   this.bc = bc
 };
 
-Pipe.prototype.step = function step$4 (t, a) {
+Pipe.prototype.step = function step$4 (t    , a )               {
   var ref = this.ab.step(t, a);
     var b = ref.value;
     var ab = ref.next;
   var ref$1 = this.bc.step(t, b);
     var c = ref$1.value;
     var bc = ref$1.next;
-  return step(c, pipe(ab, bc))
+  return step(c, pipe2(ab, bc))
 };
 
-// both :: SFTime a b -> SFTime c d -> Reactive [a, b] [c, d]
+// both :: SFTime a b -> SFTime c d -> Reactive [a, c] [b, d]
 // Given an [a, c] input, pass a through Reactive transformation ab and
 // c through Reactive transformation cd to yield [b, d]
-var both = function (ab, cd) { return new Both(ab, cd); }
+function both              (ab              , cd              )                         {
+  return new Both(ab, cd)
+}
 
-var Both = function Both (ab, cd) {
+var Both = function Both (ab            , cd            ) {
   this.ab = ab
   this.cd = cd
 };
 
-Both.prototype.step = function step$5 (t, ref) {
+Both.prototype.step = function step$5 (t    , ref      )                         {
     var a = ref[0];
     var c = ref[1];
 
@@ -173,13 +178,13 @@ function scan        (f                   , initial   )                    {
   return pipe(scanE(f, initial), hold(initial))
 }
 
-var Accum = function Accum(f                 , value ) {
+var Accum = function Accum (f                 , value ) {
   this.f = f
   this.value = value
 };
 
 Accum.prototype.step = function step (t    , a )                    {
-  if(a === undefined) {
+  if (a === undefined) {
     return { value: NoEvent, next: this }
   }
   var f = this.f
@@ -219,7 +224,7 @@ function loop           (session            , input          , sf               
     var ref$1_value = ref$1.value;
     var _ = ref$1_value[0];
     var nextInput = ref$1_value[1];
-    var next = ref$1.next;
+    var next = ref$1.next; // eslint-disable-line no-unused-vars
     dispose = switchInput(nextSession, nextInput, next, dispose)
   })
 
@@ -262,7 +267,7 @@ ClockSession.prototype.step = function step ()                    {
 //      
                                     
 
-/* global EventTarget, Event */
+/* global EventTarget, Event, requestAnimationFrame, cancelAnimationFrame */
 
                                                                             
 
