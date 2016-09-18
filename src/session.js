@@ -1,27 +1,32 @@
 // @flow
 
 // A session provides a sample of state that will be fed into
-// the system when events occur
+// a signal function when events occur
 export type Session<A> = {
   step: () => SessionStep<A>
 }
 
 export type SessionStep<A> = { sample: A, nextSession: Session<A> }
 
-const sessionStep = (sample, nextSession) => ({ sample, nextSession })
+export function newSession <A> (step: (a: A) => A, init: A): Session<A> {
+  return new SteppedSession(step, init)
+}
 
 // Session that yields an incrementing count at each step
-export const countSession = (): Session<number> => new CountSession(0)
+export const countSession = (): Session<number> => newSession(n => n + 1, 0)
 
-export class CountSession {
-  count: number;
+class SteppedSession<A> {
+  _step: (a: A) => A
+  value: A
 
-  constructor (count: number) {
-    this.count = count
+  constructor (step: (a: A) => A, value: A) {
+    this._step = step
+    this.value = value
   }
 
-  step (): SessionStep<number> {
-    return sessionStep(this.count, new CountSession(this.count + 1))
+  step (): SessionStep<A> {
+    const sample = this._step(this.value)
+    return { sample, nextSession: newSession(this._step, sample) }
   }
 }
 
@@ -42,6 +47,6 @@ class ClockSession {
     if (t < this.time) {
       this.time = t - this.start
     }
-    return sessionStep(this.time, new ClockSession(this.start))
+    return { sample: this.time, nextSession: new ClockSession(this.start) }
   }
 }

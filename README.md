@@ -1,6 +1,6 @@
 # Arrow
 
-Experimenting with arrowized push-pull FRP.
+Push-pull Signal Function FRP.
 
 ## Goals
 

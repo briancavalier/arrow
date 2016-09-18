@@ -293,6 +293,11 @@ function newInput     ()                       {
   return [occur, input]
 }
 
+//      
+                                                  
+                                          
+                                        
+
 function loop           (session            , input          , sf                                 )               {
   var dispose = input(function (a) {
     var ref = session.step();
@@ -314,18 +319,6 @@ var switchInput = function (session, input, sf, dispose) {
   return loop(session, input, sf)
 }
 
-//      
-
-// A session provides a sample of state that will be fed into
-// the system when events occur
-                          
-                            
- 
-
-                                                                   
-
-var sessionStep = function (sample, nextSession) { return ({ sample: sample, nextSession: nextSession }); }
-
 // Session that yields a time delta from its start time at each step
 var clockSession = function ()                  { return new ClockSession(Date.now()); }
 
@@ -339,7 +332,7 @@ ClockSession.prototype.step = function step ()                    {
   if (t < this.time) {
     this.time = t - this.start
   }
-  return sessionStep(this.time, new ClockSession(this.start))
+  return { sample: this.time, nextSession: new ClockSession(this.start) }
 };
 
 var animationFrames = function (f) {
@@ -508,6 +501,34 @@ module.exports = {create: updateAttrs, update: updateAttrs};
 });
 
 var attrs = interopDefault(attributes);
+
+var props = createCommonjsModule(function (module) {
+function updateProps(oldVnode, vnode) {
+  var key, cur, old, elm = vnode.elm,
+      oldProps = oldVnode.data.props, props = vnode.data.props;
+
+  if (!oldProps && !props) return;
+  oldProps = oldProps || {};
+  props = props || {};
+
+  for (key in oldProps) {
+    if (!props[key]) {
+      delete elm[key];
+    }
+  }
+  for (key in props) {
+    cur = props[key];
+    old = oldProps[key];
+    if (old !== cur && (key !== 'value' || elm[key] !== cur)) {
+      elm[key] = cur;
+    }
+  }
+}
+
+module.exports = {create: updateProps, update: updateProps};
+});
+
+interopDefault(props);
 
 var _class = createCommonjsModule(function (module) {
 function updateClass(oldVnode, vnode) {

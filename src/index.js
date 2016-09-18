@@ -12,9 +12,7 @@ export {
   both as bothI, never, newInput
 } from './input'
 
-export {
-  run, loop
-} from './run'
+export * from './run'
 
 export {
   clockSession, countSession

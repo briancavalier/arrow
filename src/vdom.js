@@ -6,6 +6,7 @@ import { scan } from './event'
 
 export { default as events } from 'snabbdom/modules/eventlisteners'
 export { default as attrs } from 'snabbdom/modules/attributes'
+export { default as props } from 'snabbdom/modules/props'
 export { default as clss } from 'snabbdom/modules/class'
 
 import sh from 'snabbdom/h'

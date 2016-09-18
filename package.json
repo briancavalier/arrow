@@ -1,7 +1,7 @@
 {
   "name": "arrow",
-  "version": "1.0.0",
-  "description": "Arrowized push-pull FRP",
+  "version": "0.0.1",
+  "description": "Push-pull Signal Function FRP",
   "main": "dist/arrow.js",
   "jsnext:main": "src/index.js",
   "module": "src/index.js",
@@ -14,6 +14,7 @@
     "build:counter": "rollup -c examples/rollup.config.js -o examples/counter/app.js examples/counter/index.js",
     "build:mouse-position": "rollup -c examples/rollup.config.js -o examples/mouse-position/app.js examples/mouse-position/index.js",
     "build:stopwatch": "rollup -c examples/rollup.config.js -o examples/stopwatch/app.js examples/stopwatch/index.js",
+    "build:temperature": "rollup -c examples/rollup.config.js -o examples/temperature/app.js examples/temperature/index.js",
     "build:timer": "rollup -c examples/rollup.config.js -o examples/timer/app.js examples/timer/index.js",
     "build:dist": "rollup -c",
     "build": "npm run build:dist && uglifyjs dist/arrow.js -o dist/arrow.min.js",
