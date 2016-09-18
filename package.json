@@ -1,5 +1,5 @@
 {
-  "name": "arrow",
+  "name": "@arrow/core",
   "version": "0.0.1",
   "description": "Push-pull Signal Function FRP",
   "main": "dist/arrow.js",
