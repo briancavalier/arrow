@@ -1,5 +1,5 @@
 import { newInput, never, time, mapE, or, both, eventTime, unsplit, pipe, accum, clockSession, bothI, loop } from '../../src/index'
-import { animationFrames } from '../../src/dom'
+import { animationFrame } from '../../src/dom'
 import { html, init, events, attrs, clss, vdomPatch } from '../../src/vdom'
 const { div, span, ol, li, button } = html
 
@@ -17,7 +17,7 @@ const [lap, lapInput] = newInput()
 
 const timerInputs = anyInput(startInput, stopInput, resetInput, lapInput)
 const stoppedInputs = anyInput(timerInputs, never)
-const runningInputs = anyInput(timerInputs, animationFrames)
+const runningInputs = anyInput(timerInputs, animationFrame)
 
 // Render timer using current time
 // Returns [inputs, vtree]

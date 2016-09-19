@@ -546,7 +546,7 @@ module.exports = function(sel, data, children, text, elm) {
 var vnode$1 = interopDefault(vnode);
 
 
-var require$$2 = Object.freeze({
+var require$$1 = Object.freeze({
   default: vnode$1
 });
 
@@ -561,104 +561,11 @@ var is$1 = interopDefault(is);
 var array = is.array;
 var primitive = is.primitive;
 
-var require$$1 = Object.freeze({
+var require$$0 = Object.freeze({
   default: is$1,
   array: array,
   primitive: primitive
 });
-
-var h = createCommonjsModule(function (module) {
-var VNode = interopDefault(require$$2);
-var is = interopDefault(require$$1);
-
-function addNS(data, children, sel) {
-  data.ns = 'http://www.w3.org/2000/svg';
-
-  if (sel !== 'foreignObject' && children !== undefined) {
-    for (var i = 0; i < children.length; ++i) {
-      addNS(children[i].data, children[i].children, children[i].sel);
-    }
-  }
-}
-
-module.exports = function h(sel, b, c) {
-  var data = {}, children, text, i;
-  if (c !== undefined) {
-    data = b;
-    if (is.array(c)) { children = c; }
-    else if (is.primitive(c)) { text = c; }
-  } else if (b !== undefined) {
-    if (is.array(b)) { children = b; }
-    else if (is.primitive(b)) { text = b; }
-    else { data = b; }
-  }
-  if (is.array(children)) {
-    for (i = 0; i < children.length; ++i) {
-      if (is.primitive(children[i])) children[i] = VNode(undefined, undefined, undefined, children[i]);
-    }
-  }
-  if (sel[0] === 's' && sel[1] === 'v' && sel[2] === 'g') {
-    addNS(data, children, sel);
-  }
-  return VNode(sel, data, children, text, undefined);
-};
-});
-
-var sh = interopDefault(h);
-
-var index = createCommonjsModule(function (module, exports) {
-'use strict';
-
-Object.defineProperty(exports, '__esModule', {
-  value: true
-});
-var isValidString = function isValidString(param) {
-  return typeof param === 'string' && param.length > 0;
-};
-
-var startsWith = function startsWith(string, start) {
-  return string[0] === start;
-};
-
-var isSelector = function isSelector(param) {
-  return isValidString(param) && (startsWith(param, '.') || startsWith(param, '#'));
-};
-
-var node = function node(h) {
-  return function (tagName) {
-    return function (first) {
-      var arguments$1 = arguments;
-
-      for (var _len = arguments.length, rest = Array(_len > 1 ? _len - 1 : 0), _key = 1; _key < _len; _key++) {
-        rest[_key - 1] = arguments$1[_key];
-      }
-
-      if (isSelector(first)) {
-        return h.apply(undefined, [tagName + first].concat(rest));
-      } else if (typeof first === 'undefined') {
-        return h(tagName);
-      } else {
-        return h.apply(undefined, [tagName, first].concat(rest));
-      }
-    };
-  };
-};
-
-var TAG_NAMES = ['a', 'abbr', 'acronym', 'address', 'applet', 'area', 'article', 'aside', 'audio', 'b', 'base', 'basefont', 'bdi', 'bdo', 'bgsound', 'big', 'blink', 'blockquote', 'body', 'br', 'button', 'canvas', 'caption', 'center', 'cite', 'code', 'col', 'colgroup', 'command', 'content', 'data', 'datalist', 'dd', 'del', 'details', 'dfn', 'dialog', 'dir', 'div', 'dl', 'dt', 'element', 'em', 'embed', 'fieldset', 'figcaption', 'figure', 'font', 'footer', 'form', 'frame', 'frameset', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'head', 'header', 'hgroup', 'hr', 'html', 'i', 'iframe', 'image', 'img', 'input', 'ins', 'isindex', 'kbd', 'keygen', 'label', 'legend', 'li', 'link', 'listing', 'main', 'map', 'mark', 'marquee', 'math', 'menu', 'menuitem', 'meta', 'meter', 'multicol', 'nav', 'nextid', 'nobr', 'noembed', 'noframes', 'noscript', 'object', 'ol', 'optgroup', 'option', 'output', 'p', 'param', 'picture', 'plaintext', 'pre', 'progress', 'q', 'rb', 'rbc', 'rp', 'rt', 'rtc', 'ruby', 's', 'samp', 'script', 'section', 'select', 'shadow', 'small', 'source', 'spacer', 'span', 'strike', 'strong', 'style', 'sub', 'summary', 'sup', 'svg', 'table', 'tbody', 'td', 'template', 'textarea', 'tfoot', 'th', 'thead', 'time', 'title', 'tr', 'track', 'tt', 'u', 'ul', 'var', 'video', 'wbr', 'xmp'];
-
-exports['default'] = function (h) {
-  var createTag = node(h);
-  var exported = { TAG_NAMES: TAG_NAMES, isSelector: isSelector, createTag: createTag };
-  TAG_NAMES.forEach(function (n) {
-    exported[n] = createTag(n);
-  });
-  return exported;
-};
-
-module.exports = exports['default'];
-});
-
-var hh = interopDefault(index);
 
 var htmldomapi = createCommonjsModule(function (module) {
 function createElement(tagName){
@@ -729,7 +636,7 @@ var nextSibling = htmldomapi.nextSibling;
 var tagName = htmldomapi.tagName;
 var setTextContent = htmldomapi.setTextContent;
 
-var require$$0 = Object.freeze({
+var require$$0$1 = Object.freeze({
   default: htmldomapi$1,
   createElement: createElement,
   createElementNS: createElementNS,
@@ -748,9 +655,9 @@ var snabbdom = createCommonjsModule(function (module) {
 /* global require, module, document, Node */
 'use strict';
 
-var VNode = interopDefault(require$$2);
-var is = interopDefault(require$$1);
-var domApi = interopDefault(require$$0);
+var VNode = interopDefault(require$$1);
+var is = interopDefault(require$$0);
+var domApi = interopDefault(require$$0$1);
 
 function isUndef(s) { return s === undefined; }
 function isDef(s) { return s !== undefined; }
@@ -1006,12 +913,110 @@ function init(modules, api) {
 module.exports = {init: init};
 });
 
-interopDefault(snabbdom);
-var init = snabbdom.init;
+var snabbdom$1 = interopDefault(snabbdom);
+
+var h = createCommonjsModule(function (module) {
+var VNode = interopDefault(require$$1);
+var is = interopDefault(require$$0);
+
+function addNS(data, children, sel) {
+  data.ns = 'http://www.w3.org/2000/svg';
+
+  if (sel !== 'foreignObject' && children !== undefined) {
+    for (var i = 0; i < children.length; ++i) {
+      addNS(children[i].data, children[i].children, children[i].sel);
+    }
+  }
+}
+
+module.exports = function h(sel, b, c) {
+  var data = {}, children, text, i;
+  if (c !== undefined) {
+    data = b;
+    if (is.array(c)) { children = c; }
+    else if (is.primitive(c)) { text = c; }
+  } else if (b !== undefined) {
+    if (is.array(b)) { children = b; }
+    else if (is.primitive(b)) { text = b; }
+    else { data = b; }
+  }
+  if (is.array(children)) {
+    for (i = 0; i < children.length; ++i) {
+      if (is.primitive(children[i])) children[i] = VNode(undefined, undefined, undefined, children[i]);
+    }
+  }
+  if (sel[0] === 's' && sel[1] === 'v' && sel[2] === 'g') {
+    addNS(data, children, sel);
+  }
+  return VNode(sel, data, children, text, undefined);
+};
+});
+
+var sh = interopDefault(h);
+
+var index = createCommonjsModule(function (module, exports) {
+'use strict';
+
+Object.defineProperty(exports, '__esModule', {
+  value: true
+});
+var isValidString = function isValidString(param) {
+  return typeof param === 'string' && param.length > 0;
+};
+
+var startsWith = function startsWith(string, start) {
+  return string[0] === start;
+};
+
+var isSelector = function isSelector(param) {
+  return isValidString(param) && (startsWith(param, '.') || startsWith(param, '#'));
+};
+
+var node = function node(h) {
+  return function (tagName) {
+    return function (first) {
+      var arguments$1 = arguments;
+
+      for (var _len = arguments.length, rest = Array(_len > 1 ? _len - 1 : 0), _key = 1; _key < _len; _key++) {
+        rest[_key - 1] = arguments$1[_key];
+      }
+
+      if (isSelector(first)) {
+        return h.apply(undefined, [tagName + first].concat(rest));
+      } else if (typeof first === 'undefined') {
+        return h(tagName);
+      } else {
+        return h.apply(undefined, [tagName, first].concat(rest));
+      }
+    };
+  };
+};
+
+var TAG_NAMES = ['a', 'abbr', 'acronym', 'address', 'applet', 'area', 'article', 'aside', 'audio', 'b', 'base', 'basefont', 'bdi', 'bdo', 'bgsound', 'big', 'blink', 'blockquote', 'body', 'br', 'button', 'canvas', 'caption', 'center', 'cite', 'code', 'col', 'colgroup', 'command', 'content', 'data', 'datalist', 'dd', 'del', 'details', 'dfn', 'dialog', 'dir', 'div', 'dl', 'dt', 'element', 'em', 'embed', 'fieldset', 'figcaption', 'figure', 'font', 'footer', 'form', 'frame', 'frameset', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'head', 'header', 'hgroup', 'hr', 'html', 'i', 'iframe', 'image', 'img', 'input', 'ins', 'isindex', 'kbd', 'keygen', 'label', 'legend', 'li', 'link', 'listing', 'main', 'map', 'mark', 'marquee', 'math', 'menu', 'menuitem', 'meta', 'meter', 'multicol', 'nav', 'nextid', 'nobr', 'noembed', 'noframes', 'noscript', 'object', 'ol', 'optgroup', 'option', 'output', 'p', 'param', 'picture', 'plaintext', 'pre', 'progress', 'q', 'rb', 'rbc', 'rp', 'rt', 'rtc', 'ruby', 's', 'samp', 'script', 'section', 'select', 'shadow', 'small', 'source', 'spacer', 'span', 'strike', 'strong', 'style', 'sub', 'summary', 'sup', 'svg', 'table', 'tbody', 'td', 'template', 'textarea', 'tfoot', 'th', 'thead', 'time', 'title', 'tr', 'track', 'tt', 'u', 'ul', 'var', 'video', 'wbr', 'xmp'];
+
+exports['default'] = function (h) {
+  var createTag = node(h);
+  var exported = { TAG_NAMES: TAG_NAMES, isSelector: isSelector, createTag: createTag };
+  TAG_NAMES.forEach(function (n) {
+    exported[n] = createTag(n);
+  });
+  return exported;
+};
+
+module.exports = exports['default'];
+});
+
+var hh = interopDefault(index);
 
 //      
                                           
                                     
+var init = function (modules) {
+  if ( modules === void 0 ) modules = [];
+
+  return snabbdom$1.init(modules);
+}
+
 var html = hh(sh)
 
                                                                       

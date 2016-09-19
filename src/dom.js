@@ -14,7 +14,7 @@ export const click = domInput('click')
 export const mousemove = domInput('mousemove')
 export const keydown = domInput('keydown')
 
-export const animationFrames = f => {
+export const animationFrame = f => {
   const handle = requestAnimationFrame(f)
   return () => cancelAnimationFrame(handle)
 }

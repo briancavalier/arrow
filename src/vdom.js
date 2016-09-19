@@ -9,10 +9,11 @@ export { default as attrs } from 'snabbdom/modules/attributes'
 export { default as props } from 'snabbdom/modules/props'
 export { default as clss } from 'snabbdom/modules/class'
 
+import snabbdom from 'snabbdom'
 import sh from 'snabbdom/h'
 import hh from 'hyperscript-helpers'
 
-export { init } from 'snabbdom'
+export const init = (modules = []) => snabbdom.init(modules)
 
 export const html = hh(sh)
 

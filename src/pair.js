@@ -17,7 +17,3 @@ export function swap <A, B> ([a, b]: [A, B]): [B, A] {
 export function uncurry <A, B, C> (f: (a: A, b: B) => C): (ab: [A, B]) => C {
   return ([a, b]) => f(a, b)
 }
-
-export function snd <A, B> (p: [A, B]): B {
-  return p[1]
-}
