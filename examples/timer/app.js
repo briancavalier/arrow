@@ -40,6 +40,9 @@ function uncurry           (f                   )                    {
 // Simple helper to construct a Step
 var step = function (value, next) { return ({ value: value, next: next }); }
 
+var time                    =
+  { step: function (value, _) { return ({ value: value, next: time }); } }
+
 // Lift a function into a SignalFunc
 function lift        (f             )               {
   return new Lift(f)
@@ -143,56 +146,11 @@ Both.prototype.step = function step$5 (t    , ref      )                        
 // Event non-occurrence
 var NoEvent = undefined
 
-// Turn Events of A instead Events of B
-function map        (f             )                        {
-  return function (a) { return a === undefined ? a : f(a); }
-}
-
-// Return the Event that occurred, preferring a1 if both occurred
-function mergeE     (a1        , a2        )         {
-  return a1 === undefined ? a2 : a1
-}
-
-// Internal helper to allow continuous value transformations to be
-// applied when an event occurs
-// TODO: Consider exposing this if it seems useful
-function liftE        (ab              )                         {
-  return new LiftE(ab)
-}
-
-var LiftE = function LiftE (ab) {
-  this.ab = ab
-};
-
-LiftE.prototype.step = function step (t    , a      )                         {
-  if (a === undefined) {
-    return { value: NoEvent, next: this }
+// Sample the current time when an event occurs
+var eventTime                              = {
+  step: function step (t      , a     )                                {
+    return { value: a === undefined ? NoEvent : t, next: this }
   }
-  var ref = this.ab.step(t, a);
-    var value = ref.value;
-    var next = ref.next;
-  return { value: value, next: liftE(next) }
-};
-
-// Transform event values
-function mapE        (f             )                         {
-  return lift(map(f))
-}
-
-// When an event occurs, make its value b
-function as        (b   )                         {
-  return mapE(function (_) { return b; })
-}
-
-// Merge events, preferring the left in the case of
-// simultaneous occurrence
-function merge     ()                                   {
-  return unsplit(mergeE)
-}
-
-// Merge event SignalFuncs
-function or        (left                        , right                        )                         {
-  return liftE(pipe(both(left, right), merge()))
 }
 
 // Turn an event into a stepped continuous value
@@ -218,16 +176,6 @@ function scanE        (f                   , initial   )                        
 // Accumulate event to a continuous value
 function scan        (f                   , initial   )                    {
   return pipe(scanE(f, initial), hold(initial))
-}
-
-// Accumulate event, given an initial value and a update-function event
-function accumE     (initial   )                                   {
-  return scanE(function (a, f) { return f(a); }, initial)
-}
-
-// Accumulate event to a continuous value, given an initial value and a update-function event
-function accum     (initial   )                              {
-  return pipe(accumE(initial), hold(initial))
 }
 
 var Accum = function Accum (f                 , value ) {
@@ -259,7 +207,7 @@ Accum.prototype.step = function step (t    , a )                    {
                                      
 
 // Turn a pair of inputs into an input of pairs
-function both$1       (input1          , input2          )                          {
+function and       (input1          , input2          )                          {
   return function (f) {
     var dispose1 = input1(function (a1) { return f([a1, NoEvent]); })
     var dispose2 = input2(function (a2) { return f([NoEvent, a2]); })
@@ -284,6 +232,17 @@ function newInput     ()                       {
 
   return [occur, input]
 }
+
+// Session that yields a time delta from its start time at each step
+var clockSession = function ()                  { return new ClockSession(Date.now()); }
+
+var ClockSession = function ClockSession (start      ) {
+  this.start = start
+};
+
+ClockSession.prototype.step = function step ()                    {
+  return { sample: Date.now() - this.start, nextSession: new ClockSession(this.start) }
+};
 
 //      
                                                   
@@ -310,22 +269,6 @@ var switchInput = function (session, input, sf, dispose) {
   dispose()
   return loop(session, input, sf)
 }
-
-// Session that yields a time delta from its start time at each step
-var clockSession = function ()                  { return new ClockSession(Date.now()); }
-
-var ClockSession = function ClockSession (start      ) {
-  this.start = start
-  this.time = Infinity
-};
-
-ClockSession.prototype.step = function step ()                    {
-  var t = Date.now()
-  if (t < this.time) {
-    this.time = t - this.start
-  }
-  return { sample: this.time, nextSession: new ClockSession(this.start) }
-};
 
 function interopDefault(ex) {
 	return ex && typeof ex === 'object' && 'default' in ex ? ex['default'] : ex;
@@ -1035,6 +978,8 @@ function vdomPatch               (patch                   , init       )        
   return first(scan(patch, init))
 }
 
+var div = html.div;
+var p = html.p;
 var button = html.button;
 
 var container = document.getElementById('app')
@@ -1047,22 +992,25 @@ var after = function (ms) { return function (f) {
 }; }
 
 // Counter component
-var render = function (count) {
+var render = function (start, now) {
+  var elapsed = now - start
   var ref = newInput();
   var click = ref[0];
   var reset = ref[1];
   return [
-    button({ on: { click: click } }, ("Seconds passed: " + count)),
-    both$1(reset, after(1000))
+    div([
+      p(("Seconds passed: " + (Math.floor(elapsed * .001)))),
+      button({ on: { click: click } }, "Reset")
+    ]),
+    and(reset, after(1000 - (elapsed % 1000))) // account for setTimeout drift
   ]
 }
 
-var inc = as(function (a) { return a + 1; })
-var reset = as(function () { return 0; })
-var counter = pipe(or(reset, inc), accum(0), lift(render))
+var reset = pipe(eventTime, hold(0))
+var counter = pipe(both(reset, time), unsplit(render))
 
 // Render initial UI and get initial inputs
-var ref = render(0);
+var ref = render(0, 0);
 var vtree = ref[0];
 var input = ref[1];
 

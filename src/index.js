@@ -9,7 +9,7 @@ export * from './signal'
 export * from './event'
 
 export {
-  both as bothI, never, newInput
+  and as bothI, never, newInput
 } from './input'
 
 export * from './run'

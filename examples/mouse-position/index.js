@@ -1,22 +1,25 @@
 // @flow
-import { hold, pipe, mapE, always, split, unsplit, both, bothI, loop, clockSession } from '../../src/index'
+import { pipe, always, split, unsplit, both } from '../../src/signal'
+import { hold, mapE } from '../../src/event'
+import { and } from '../../src/input'
+import { countSession } from '../../src/session'
+import { loop } from '../../src/run'
 import { mousemove, keydown } from '../../src/dom'
 import { html, init, vdomPatch } from '../../src/vdom'
-const { div } = html
+const { span } = html
 
 const container = document.getElementById('app')
 const patch = init()
 
-const inputs = bothI(mousemove(document), keydown(document))
+const inputs = and(mousemove(document), keydown(document))
 
-const render = (pos, key) => div(`${pos.clientX},${pos.clientY}:${key}`)
+const render = (pos, key) => span(`${pos.clientX},${pos.clientY}:${key}`)
 const withInputs = always(inputs)
 
 const coords = hold('-,-')
 const keyCode = pipe(mapE(e => e.keyCode), hold('-'))
 const mouseAndKey = pipe(both(coords, keyCode), unsplit(render))
 
-const vtree = render({ clientX: 0, clientY: 0 }, '-')
-const update = vdomPatch(patch, patch(container, vtree))
+const update = vdomPatch(patch, patch(container, span('move the mouse and press some keys')))
 
-loop(clockSession(), inputs, pipe(split(mouseAndKey, withInputs), update))
+loop(countSession(), inputs, pipe(split(mouseAndKey, withInputs), update))

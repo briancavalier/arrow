@@ -240,13 +240,37 @@ Accum.prototype.step = function step (t    , a )                    {
                                      
 
 // Turn a pair of inputs into an input of pairs
-function both$1       (input1          , input2          )                          {
+function and       (input1          , input2          )                          {
   return function (f) {
     var dispose1 = input1(function (a1) { return f([a1, NoEvent]); })
     var dispose2 = input2(function (a2) { return f([NoEvent, a2]); })
     return function () { return [dispose1(), dispose2()]; }
   }
 }
+
+//      
+
+// A session provides a sample of state that will be fed into
+// a signal function when events occur
+                          
+                            
+ 
+
+                              
+            
+                         
+ 
+
+// Session that yields an incrementing count at each step
+var countSession = function ()                  { return new CountSession(1); }
+
+var CountSession = function CountSession (count      ) {
+  this.count = count
+};
+
+CountSession.prototype.step = function step ()                    {
+  return { sample: this.count, nextSession: new CountSession(this.count + 1) }
+};
 
 //      
                                                   
@@ -273,22 +297,6 @@ var switchInput = function (session, input, sf, dispose) {
   dispose()
   return loop(session, input, sf)
 }
-
-// Session that yields a time delta from its start time at each step
-var clockSession = function ()                  { return new ClockSession(Date.now()); }
-
-var ClockSession = function ClockSession (start      ) {
-  this.start = start
-  this.time = Infinity
-};
-
-ClockSession.prototype.step = function step ()                    {
-  var t = Date.now()
-  if (t < this.time) {
-    this.time = t - this.start
-  }
-  return { sample: this.time, nextSession: new ClockSession(this.start) }
-};
 
 //      
                                     
@@ -1014,23 +1022,22 @@ function vdomPatch               (patch                   , init       )        
 }
 
 //      
-var div = html.div;
+var span = html.span;
 
 var container = document.getElementById('app')
 var patch = init()
 
-var inputs = both$1(mousemove(document), keydown(document))
+var inputs = and(mousemove(document), keydown(document))
 
-var render = function (pos, key) { return div(((pos.clientX) + "," + (pos.clientY) + ":" + key)); }
+var render = function (pos, key) { return span(((pos.clientX) + "," + (pos.clientY) + ":" + key)); }
 var withInputs = always(inputs)
 
 var coords = hold('-,-')
 var keyCode = pipe(mapE(function (e) { return e.keyCode; }), hold('-'))
 var mouseAndKey = pipe(both(coords, keyCode), unsplit(render))
 
-var vtree = render({ clientX: 0, clientY: 0 }, '-')
-var update = vdomPatch(patch, patch(container, vtree))
+var update = vdomPatch(patch, patch(container, span('move the mouse and press some keys')))
 
-loop(clockSession(), inputs, pipe(split(mouseAndKey, withInputs), update))
+loop(countSession(), inputs, pipe(split(mouseAndKey, withInputs), update))
 
 }());

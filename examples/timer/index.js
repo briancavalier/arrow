@@ -1,6 +1,10 @@
-import { lift, pipe, as, accum, or, bothI, newInput, clockSession, loop } from '../../src/index'
+import { pipe, both, unsplit, time } from '../../src/signal'
+import { hold, eventTime } from '../../src/event'
+import { newInput, and } from '../../src/input'
+import { clockSession } from '../../src/session'
+import { loop } from '../../src/run'
 import { html, init, events, vdomPatch } from '../../src/vdom'
-const { button } = html
+const { div, p, button } = html
 
 const container = document.getElementById('app')
 const patch = init([events])
@@ -12,20 +16,23 @@ const after = ms => f => {
 }
 
 // Counter component
-const render = (count) => {
+const render = (start, now) => {
+  const elapsed = now - start
   const [click, reset] = newInput()
   return [
-    button({ on: { click } }, `Seconds passed: ${count}`),
-    bothI(reset, after(1000))
+    div([
+      p(`Seconds passed: ${Math.floor(elapsed * .001)}`),
+      button({ on: { click } }, `Reset`)
+    ]),
+    and(reset, after(1000 - (elapsed % 1000))) // account for setTimeout drift
   ]
 }
 
-const inc = as((a) => a + 1)
-const reset = as(() => 0)
-const counter = pipe(or(reset, inc), accum(0), lift(render))
+const reset = pipe(eventTime, hold(0))
+const counter = pipe(both(reset, time), unsplit(render))
 
 // Render initial UI and get initial inputs
-const [vtree, input] = render(0)
+const [vtree, input] = render(0, 0)
 
 // Append vdom updater to counter component
 const update = vdomPatch(patch, patch(container, vtree))

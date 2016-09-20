@@ -6,27 +6,23 @@ export type Session<A> = {
   step: () => SessionStep<A>
 }
 
-export type SessionStep<A> = { sample: A, nextSession: Session<A> }
-
-export function newSession <A> (step: (a: A) => A, init: A): Session<A> {
-  return new SteppedSession(step, init)
+export type SessionStep<A> = {
+  sample: A,
+  nextSession: Session<A>
 }
 
 // Session that yields an incrementing count at each step
-export const countSession = (): Session<number> => newSession(n => n + 1, 0)
+export const countSession = (): Session<number> => new CountSession(1)
 
-class SteppedSession<A> {
-  _step: (a: A) => A
-  value: A
+class CountSession {
+  count: number
 
-  constructor (step: (a: A) => A, value: A) {
-    this._step = step
-    this.value = value
+  constructor (count: number) {
+    this.count = count
   }
 
-  step (): SessionStep<A> {
-    const sample = this._step(this.value)
-    return { sample, nextSession: newSession(this._step, sample) }
+  step (): SessionStep<number> {
+    return { sample: this.count, nextSession: new CountSession(this.count + 1) }
   }
 }
 
@@ -35,18 +31,13 @@ export const clockSession = (): Session<number> => new ClockSession(Date.now())
 
 class ClockSession {
   start: number;
-  time: number;
 
   constructor (start: number) {
     this.start = start
-    this.time = Infinity
   }
 
   step (): SessionStep<number> {
-    const t = Date.now()
-    if (t < this.time) {
-      this.time = t - this.start
-    }
-    return { sample: this.time, nextSession: new ClockSession(this.start) }
+    return { sample: Date.now() - this.start, nextSession: new ClockSession(this.start) }
   }
 }
+

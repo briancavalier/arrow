@@ -249,7 +249,7 @@ Accum.prototype.step = function step (t    , a )                    {
                                      
 
 // Turn a pair of inputs into an input of pairs
-function both$1       (input1          , input2          )                          {
+function and       (input1          , input2          )                          {
   return function (f) {
     var dispose1 = input1(function (a1) { return f([a1, NoEvent]); })
     var dispose2 = input2(function (a2) { return f([NoEvent, a2]); })
@@ -274,6 +274,17 @@ function newInput     ()                       {
 
   return [occur, input]
 }
+
+// Session that yields a time delta from its start time at each step
+var clockSession = function ()                  { return new ClockSession(Date.now()); }
+
+var ClockSession = function ClockSession (start      ) {
+  this.start = start
+};
+
+ClockSession.prototype.step = function step ()                    {
+  return { sample: Date.now() - this.start, nextSession: new ClockSession(this.start) }
+};
 
 //      
                                                   
@@ -300,22 +311,6 @@ var switchInput = function (session, input, sf, dispose) {
   dispose()
   return loop(session, input, sf)
 }
-
-// Session that yields a time delta from its start time at each step
-var clockSession = function ()                  { return new ClockSession(Date.now()); }
-
-var ClockSession = function ClockSession (start      ) {
-  this.start = start
-  this.time = Infinity
-};
-
-ClockSession.prototype.step = function step ()                    {
-  var t = Date.now()
-  if (t < this.time) {
-    this.time = t - this.start
-  }
-  return { sample: this.time, nextSession: new ClockSession(this.start) }
-};
 
 function interopDefault(ex) {
 	return ex && typeof ex === 'object' && 'default' in ex ? ex['default'] : ex;
@@ -1044,7 +1039,7 @@ var render = function (value) { return [div('#app', [
     p(value),
     button({ on: { click: dec } }, '-'),
     button({ on: { click: inc } }, '+')
-  ]), both$1(incInput, decInput)]; }
+  ]), and(incInput, decInput)]; }
 
 var add = function (a, b) { return a + b; }
 var counter = pipe(or(as(1), as(-1)), scan(add, 0))

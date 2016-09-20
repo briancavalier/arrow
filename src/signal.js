@@ -88,7 +88,7 @@ export function first <A, B, C> (ab: SFTime<A, B>): SFTime<[A, C], [B, C]> {
 
 // second :: SFTime a b -> SFTime [c, a] [c, b]
 export function second <A, B, C> (ab: SFTime<A, B>): SFTime<[C, A], [C, B]> {
-  return dimap(swap, swap, first(ab))
+  return promap(swap, swap, first(ab))
 }
 
 class First<A, B, C> {
@@ -139,7 +139,7 @@ export function pipe2 <A, B, C> (ab: SFTime<A, B>, bc: SFTime<B, C>): SFTime<A, 
   return new Pipe(ab, bc)
 }
 
-export function dimap <A, B, C, D> (fab: (a: A) => B, fcd: (c: C) => D, bc: SFTime<B, C>): SFTime<A, D> {
+export function promap <A, B, C, D> (fab: (a: A) => B, fcd: (c: C) => D, bc: SFTime<B, C>): SFTime<A, D> {
   return pipe2(pipe2(lift(fab), bc), lift(fcd))
 }
 

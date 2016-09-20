@@ -1,5 +1,9 @@
 // @flow
-import { or, as, lift, bothI, newInput, scan, pipe, clockSession, loop } from '../../src/index'
+import { lift, pipe } from '../../src/signal'
+import { or, as, scan } from '../../src/event'
+import { newInput, and } from '../../src/input'
+import { clockSession } from '../../src/session'
+import { loop } from '../../src/run'
 import { html, init, events, vdomPatch } from '../../src/vdom'
 const { div, p, button } = html
 
@@ -14,7 +18,7 @@ const render = value =>
     p(value),
     button({ on: { click: dec } }, '-'),
     button({ on: { click: inc } }, '+')
-  ]), bothI(incInput, decInput)]
+  ]), and(incInput, decInput)]
 
 const add = (a, b) => a + b
 const counter = pipe(or(as(1), as(-1)), scan(add, 0))

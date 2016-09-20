@@ -1,10 +1,14 @@
-import { newInput, never, time, mapE, or, both, eventTime, unsplit, pipe, accum, clockSession, bothI, loop } from '../../src/index'
+import { time, both, unsplit, pipe } from '../../src/signal'
+import { mapE, or, eventTime, accum } from '../../src/event'
+import { and, newInput, never} from '../../src/input'
+import { clockSession } from '../../src/session'
+import { loop } from '../../src/run'
 import { animationFrame } from '../../src/dom'
 import { html, init, events, attrs, clss, vdomPatch } from '../../src/vdom'
 const { div, span, ol, li, button } = html
 
 // TODO: combining many inputs and signals. Need a better way
-const anyInput = (...inputs) => inputs.reduce(bothI)
+const anyInput = (...inputs) => inputs.reduce(and)
 const anySignal = (...signals) => signals.reduce(or)
 
 const container = document.getElementById('app')
