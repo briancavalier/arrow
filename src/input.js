@@ -27,17 +27,13 @@ export const never: Input<any> = () => noop
 const noop = () => {}
 
 export function newInput <A> (): [Occur<A>, Input<A>] {
-  let _occur
-  const occur = (x) => {
-    if (typeof _occur === 'function') {
-      _occur(x)
-    }
-  }
+  let _occur = noop
+  const occur = (x) => _occur(x)
 
   const input = (f) => {
     _occur = f
     return () => {
-      _occur = undefined
+      _occur = noop
     }
   }
 

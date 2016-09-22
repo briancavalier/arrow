@@ -177,13 +177,13 @@ Both.prototype.step = function step$5 (t    , ref      )                        
 var NoEvent = undefined
 
 // Turn Events of A instead Events of B
-function map        (f             )                        {
+function mapE        (f             )                        {
   return function (a) { return a === undefined ? a : f(a); }
 }
 
 // Transform event values
-function mapE        (f             )                         {
-  return lift(map(f))
+function map        (f             )                         {
+  return lift(mapE(f))
 }
 
 // Turn an event into a stepped continuous value
@@ -1033,7 +1033,7 @@ var render = function (pos, key) { return span(((pos.clientX) + "," + (pos.clien
 var withInputs = always(inputs)
 
 var coords = hold('-,-')
-var keyCode = pipe(mapE(function (e) { return e.keyCode; }), hold('-'))
+var keyCode = pipe(map(function (e) { return e.keyCode; }), hold('-'))
 var mouseAndKey = pipe(both(coords, keyCode), unsplit(render))
 
 var update = vdomPatch(patch, patch(container, span('move the mouse and press some keys')))

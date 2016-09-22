@@ -147,7 +147,7 @@ Both.prototype.step = function step$5 (t    , ref      )                        
 var NoEvent = undefined
 
 // Turn Events of A instead Events of B
-function map        (f             )                        {
+function mapE        (f             )                        {
   return function (a) { return a === undefined ? a : f(a); }
 }
 
@@ -185,8 +185,8 @@ var eventTime                              = {
 }
 
 // Transform event values
-function mapE        (f             )                         {
-  return lift(map(f))
+function map        (f             )                         {
+  return lift(mapE(f))
 }
 
 // Merge events, preferring the left in the case of
@@ -276,17 +276,13 @@ var never             = function () { return noop; }
 var noop = function () {}
 
 function newInput     ()                       {
-  var _occur
-  var occur = function (x) {
-    if (typeof _occur === 'function') {
-      _occur(x)
-    }
-  }
+  var _occur = noop
+  var occur = function (x) { return _occur(x); }
 
   var input = function (f) {
     _occur = f
     return function () {
-      _occur = undefined
+      _occur = noop
     }
   }
 
@@ -1164,10 +1160,10 @@ var timerElapsed = function (time, ref) {
 var timerTotal = function (origin, total, time) { return total + (time - origin); }
 
 // Timer events, each tagged with its occurrence time
-var doStart = pipe(eventTime, mapE(timerStart))
-var doStop = pipe(eventTime, mapE(timerStop))
-var doReset = pipe(eventTime, mapE(timerReset))
-var doLap = pipe(eventTime, mapE(timerLap))
+var doStart = pipe(eventTime, map(timerStart))
+var doStop = pipe(eventTime, map(timerStop))
+var doReset = pipe(eventTime, map(timerReset))
+var doLap = pipe(eventTime, map(timerLap))
 
 // An interactive timer that responds to start, stop, reset, and lap events
 // by changing (i.e. accumulating) state

@@ -11,7 +11,7 @@ export type Evt<A> = A | void
 export const NoEvent = undefined
 
 // Turn Events of A instead Events of B
-function map <A, B> (f: (a: A) => B): (a: Evt<A>) => Evt<B> {
+function mapE <A, B> (f: (a: A) => B): (a: Evt<A>) => Evt<B> {
   return a => a === undefined ? a : f(a)
 }
 
@@ -51,13 +51,13 @@ export const eventTime: SFTime<Evt<any>, Evt<Time>> = {
 }
 
 // Transform event values
-export function mapE <A, B> (f: (a: A) => B): SFTime<Evt<A>, Evt<B>> {
-  return lift(map(f))
+export function map <A, B> (f: (a: A) => B): SFTime<Evt<A>, Evt<B>> {
+  return lift(mapE(f))
 }
 
 // When an event occurs, make its value b
 export function as <A, B> (b: B): SFTime<Evt<A>, Evt<B>> {
-  return mapE(_ => b)
+  return map(_ => b)
 }
 
 // When A occurs, sample the value of B, and produce f(a, b)

@@ -1,5 +1,5 @@
 import { time, both, unsplit, pipe } from '../../src/signal'
-import { mapE, or, eventTime, accum } from '../../src/event'
+import { map, or, eventTime, accum } from '../../src/event'
 import { and, newInput, never} from '../../src/input'
 import { clockSession } from '../../src/session'
 import { loop } from '../../src/run'
@@ -73,10 +73,10 @@ const timerElapsed = (time, { origin, total }) => timerTotal(origin, total, time
 const timerTotal = (origin, total, time) => total + (time - origin)
 
 // Timer events, each tagged with its occurrence time
-const doStart = pipe(eventTime, mapE(timerStart))
-const doStop = pipe(eventTime, mapE(timerStop))
-const doReset = pipe(eventTime, mapE(timerReset))
-const doLap = pipe(eventTime, mapE(timerLap))
+const doStart = pipe(eventTime, map(timerStart))
+const doStop = pipe(eventTime, map(timerStop))
+const doReset = pipe(eventTime, map(timerReset))
+const doLap = pipe(eventTime, map(timerLap))
 
 // An interactive timer that responds to start, stop, reset, and lap events
 // by changing (i.e. accumulating) state

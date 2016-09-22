@@ -144,7 +144,7 @@ Both.prototype.step = function step$5 (t    , ref      )                        
 var NoEvent = undefined
 
 // Turn Events of A instead Events of B
-function map        (f             )                        {
+function mapE        (f             )                        {
   return function (a) { return a === undefined ? a : f(a); }
 }
 
@@ -175,13 +175,13 @@ LiftE.prototype.step = function step (t    , a      )                         {
 };
 
 // Transform event values
-function mapE        (f             )                         {
-  return lift(map(f))
+function map        (f             )                         {
+  return lift(mapE(f))
 }
 
 // When an event occurs, make its value b
 function as        (b   )                         {
-  return mapE(function (_) { return b; })
+  return map(function (_) { return b; })
 }
 
 // Merge events, preferring the left in the case of
@@ -257,18 +257,16 @@ function and       (input1          , input2          )                         
   }
 }
 
+var noop = function () {}
+
 function newInput     ()                       {
-  var _occur
-  var occur = function (x) {
-    if (typeof _occur === 'function') {
-      _occur(x)
-    }
-  }
+  var _occur = noop
+  var occur = function (x) { return _occur(x); }
 
   var input = function (f) {
     _occur = f
     return function () {
-      _occur = undefined
+      _occur = noop
     }
   }
 

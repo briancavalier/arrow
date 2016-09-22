@@ -1,6 +1,6 @@
 // @flow
 import { pipe, always, split, unsplit, both } from '../../src/signal'
-import { hold, mapE } from '../../src/event'
+import { hold, map } from '../../src/event'
 import { and } from '../../src/input'
 import { countSession } from '../../src/session'
 import { loop } from '../../src/run'
@@ -17,7 +17,7 @@ const render = (pos, key) => span(`${pos.clientX},${pos.clientY}:${key}`)
 const withInputs = always(inputs)
 
 const coords = hold('-,-')
-const keyCode = pipe(mapE(e => e.keyCode), hold('-'))
+const keyCode = pipe(map(e => e.keyCode), hold('-'))
 const mouseAndKey = pipe(both(coords, keyCode), unsplit(render))
 
 const update = vdomPatch(patch, patch(container, span('move the mouse and press some keys')))

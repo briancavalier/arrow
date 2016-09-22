@@ -215,18 +215,16 @@ function and       (input1          , input2          )                         
   }
 }
 
+var noop = function () {}
+
 function newInput     ()                       {
-  var _occur
-  var occur = function (x) {
-    if (typeof _occur === 'function') {
-      _occur(x)
-    }
-  }
+  var _occur = noop
+  var occur = function (x) { return _occur(x); }
 
   var input = function (f) {
     _occur = f
     return function () {
-      _occur = undefined
+      _occur = noop
     }
   }
 
