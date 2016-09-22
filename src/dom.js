@@ -1,20 +1,21 @@
 // @flow
-import type { Input } from './input'
+import type { SignalGen } from './signalgen'
+import { stepInput } from './signalgen'
 
 /* global EventTarget, Event, requestAnimationFrame, cancelAnimationFrame */
 
-export type DomInput = (name: string) => (node: EventTarget) => Input<Event>
+export type DomSignalGen = (name: string) => (node: EventTarget) => SignalGen<Event>
 
-export const domInput: DomInput = (name) => (node) => (f) => {
-  node.addEventListener(name, f, false)
-  return () => node.removeEventListener(name, f, false)
-}
+const cancelDomEvent = ({ node, name, handler }) => node.removeEventListener(name, handler, false)
 
-export const click = domInput('click')
-export const mousemove = domInput('mousemove')
-export const keydown = domInput('keydown')
+export const fromDomEvent: DomSignalGen = (name) => (node) =>
+  stepInput(handler => {
+    node.addEventListener(name, handler, false)
+    return { node, name, handler }
+  }, cancelDomEvent)
 
-export const animationFrame = f => {
-  const handle = requestAnimationFrame(f)
-  return () => cancelAnimationFrame(handle)
-}
+export const click = fromDomEvent('click')
+export const mousemove = fromDomEvent('mousemove')
+export const keydown = fromDomEvent('keydown')
+
+export const animationFrame = stepInput(requestAnimationFrame, cancelAnimationFrame)

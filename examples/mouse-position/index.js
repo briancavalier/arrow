@@ -1,7 +1,7 @@
 // @flow
 import { pipe, always, split, unsplit, both } from '../../src/signal'
 import { hold, map } from '../../src/event'
-import { and } from '../../src/input'
+import { and } from '../../src/signalgen'
 import { countSession } from '../../src/session'
 import { loop } from '../../src/run'
 import { mousemove, keydown } from '../../src/dom'

@@ -194,42 +194,100 @@ Accum.prototype.step = function step (t    , a )                    {
 
 //      
                                   
-// Dispose an Input
-                                    
+// A SignalGen generates values or events of a signal
+                            
+                                               
+ 
 
-// Handle input events
+// Forget all future values of a SignalGen
+                        
+                    
+ 
+
+// Handle events from a SignalGen
                                           
 
-// An Input allows events to be pushed into the system
-// It's basically any unary higher order function
-                                                                
-
-                                     
-
 // Turn a pair of inputs into an input of pairs
-function and       (input1          , input2          )                          {
-  return function (f) {
-    var dispose1 = input1(function (a1) { return f([a1, NoEvent]); })
-    var dispose2 = input2(function (a2) { return f([NoEvent, a2]); })
-    return function () { return [dispose1(), dispose2()]; }
-  }
+function and       (input1              , input2              )                              {
+  return new SGVector(input1, input2)
+}
+
+function delay     (ms        , a   )                    {
+  return stepInput(function (f) { return setTimeout(f, ms, a); }, clearTimeout)
+}
+
+function signalGen     ()                           {
+  var source = new SGSource()
+  return [function (x) { return source.handler(x); }, source]
 }
 
 var noop = function () {}
 
-function newInput     ()                       {
-  var _occur = noop
-  var occur = function (x) { return _occur(x); }
+var SGSource = function SGSource () {
+  this.handler = noop
+};
 
-  var input = function (f) {
-    _occur = f
-    return function () {
-      _occur = noop
-    }
-  }
+SGSource.prototype.listen = function listen (handler              )         {
+  this.handler = handler
+  return new ForgetSGSource(this)
+};
 
-  return [occur, input]
+var ForgetSGSource = function ForgetSGSource (source           ) {
+  this.source = source
+};
+
+ForgetSGSource.prototype.forget = function forget ()     {
+  this.source.handler = noop
+};
+
+var emptySignalVector = [NoEvent, NoEvent]
+
+var empty = function (input) { return input instanceof SGVector ? emptySignalVector : NoEvent; }
+
+var SGVector = function SGVector (first            , second            ) {
+  this.first = first
+  this.second = second
+};
+
+SGVector.prototype.listen = function listen (handler                             )         {
+    var this$1 = this;
+
+  var forgetFirst = this.first.listen(function (a) { return handler([a, empty(this$1.second)]); })
+  var forgetSecond = this.second.listen(function (a) { return handler([empty(this$1.first), a]); })
+  return new ForgetSGVector(forgetFirst, forgetSecond)
+};
+
+var ForgetSGVector = function ForgetSGVector (forgetFirst        , forgetSecond        ) {
+  this.forgetFirst = forgetFirst
+  this.forgetSecond = forgetSecond
+};
+
+ForgetSGVector.prototype.forget = function forget ()     {
+  this.forgetFirst.forget()
+  this.forgetSecond.forget()
+};
+
+function stepInput        (set                          , forget               )               {
+  return new PushSG(set, forget)
 }
+
+var PushSG = function PushSG(set                        , forget             ) {
+  this.set = set
+  this.forget = forget
+};
+
+PushSG.prototype.listen = function listen (f) {
+  return new ForgetPushSG(this.forget, this.set.call(undefined, f))
+};
+
+var ForgetPushSG = function ForgetPushSG (forget             , context ) {
+  this._forget = forget
+  this.context = context
+};
+
+ForgetPushSG.prototype.forget = function forget ()     {
+  this._forget.call(undefined, this.context)
+};
 
 // Session that yields a time delta from its start time at each step
 var clockSession = function ()                  { return new ClockSession(Date.now()); }
@@ -247,8 +305,8 @@ ClockSession.prototype.step = function step ()                    {
                                           
                                         
 
-function loop           (session            , input          , sf                                 )               {
-  var dispose = input(function (a) {
+function loop           (session            , input              , sf                                     )           {
+  var forget = input.listen(function (a) {
     var ref = session.step();
     var sample = ref.sample;
     var nextSession = ref.nextSession;
@@ -257,14 +315,14 @@ function loop           (session            , input          , sf               
     var _ = ref$1_value[0];
     var nextInput = ref$1_value[1];
     var next = ref$1.next; // eslint-disable-line no-unused-vars
-    dispose = switchInput(nextSession, nextInput, next, dispose)
+    forget = switchInput(nextSession, nextInput, next, forget)
   })
 
-  return dispose
+  return forget
 }
 
-var switchInput = function (session, input, sf, dispose) {
-  dispose()
+var switchInput = function (session, input, sf, forget) {
+  forget.forget()
   return loop(session, input, sf)
 }
 
@@ -961,7 +1019,7 @@ var hh = interopDefault(index);
 
 //      
                                           
-                                    
+                                        
 var init = function (modules) {
   if ( modules === void 0 ) modules = [];
 
@@ -972,7 +1030,7 @@ var html = hh(sh)
 
                                                                       
 
-function vdomPatch               (patch                   , init       )                                                      {
+function vdomPatch               (patch                   , init       )                                                              {
   return first(scan(patch, init))
 }
 
@@ -983,16 +1041,10 @@ var button = html.button;
 var container = document.getElementById('app')
 var patch = init([events])
 
-// Simple input that fires an event after ms millis
-var after = function (ms) { return function (f) {
-  var handle = setTimeout(f, ms, ms)
-  return function () { return clearTimeout(handle); }
-}; }
-
 // Counter component
 var render = function (start, now) {
   var elapsed = now - start
-  var ref = newInput();
+  var ref = signalGen();
   var click = ref[0];
   var reset = ref[1];
   return [
@@ -1000,7 +1052,7 @@ var render = function (start, now) {
       p(("Seconds passed: " + (Math.floor(elapsed * .001)))),
       button({ on: { click: click } }, "Reset")
     ]),
-    and(reset, after(1000 - (elapsed % 1000))) // account for setTimeout drift
+    and(reset, delay(1000 - (elapsed % 1000))) // account for setTimeout drift
   ]
 }
 
