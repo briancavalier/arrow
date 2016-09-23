@@ -1,6 +1,6 @@
 import { pipe, both, unsplit, time } from '../../src/signal'
 import { hold, eventTime } from '../../src/event'
-import { newInput, and } from '../../src/input'
+import { signalGen, and, delay } from '../../src/signalgen'
 import { clockSession } from '../../src/session'
 import { loop } from '../../src/run'
 import { html, init, events, vdomPatch } from '../../src/vdom'
@@ -9,22 +9,16 @@ const { div, p, button } = html
 const container = document.getElementById('app')
 const patch = init([events])
 
-// Simple input that fires an event after ms millis
-const after = ms => f => {
-  const handle = setTimeout(f, ms, ms)
-  return () => clearTimeout(handle)
-}
-
 // Counter component
 const render = (start, now) => {
   const elapsed = now - start
-  const [click, reset] = newInput()
+  const [click, reset] = signalGen()
   return [
     div([
       p(`Seconds passed: ${Math.floor(elapsed * .001)}`),
       button({ on: { click } }, `Reset`)
     ]),
-    and(reset, after(1000 - (elapsed % 1000))) // account for setTimeout drift
+    and(reset, delay(1000 - (elapsed % 1000))) // account for setTimeout drift
   ]
 }
 

@@ -1,7 +1,7 @@
 // @flow
 import { lift, pipe } from '../../src/signal'
 import { or, as, scan } from '../../src/event'
-import { newInput, and } from '../../src/input'
+import { signalGen, and } from '../../src/signalgen'
 import { clockSession } from '../../src/session'
 import { loop } from '../../src/run'
 import { html, init, events, vdomPatch } from '../../src/vdom'
@@ -10,8 +10,8 @@ const { div, p, button } = html
 const container = document.getElementById('app')
 const patch = init([events])
 
-const [inc, incInput] = newInput()
-const [dec, decInput] = newInput()
+const [inc, incInput] = signalGen()
+const [dec, decInput] = signalGen()
 
 const render = value =>
   [div('#app', [

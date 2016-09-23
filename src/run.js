@@ -1,19 +1,19 @@
 // @flow
-import type { Input, DisposeInput } from './input'
+import type { SignalGen, ForgetSG } from './input'
 import type { SignalFunc } from './signal'
 import type { Session } from './session'
 
-export function loop <T, A, B> (session: Session<T>, input: Input<A>, sf: SignalFunc<T, A, [B, Input<A>]>): DisposeInput {
-  let dispose = input(a => {
+export function loop <T, A, B> (session: Session<T>, input: SignalGen<A>, sf: SignalFunc<T, A, [B, SignalGen<A>]>): ForgetSG {
+  let forget = input.listen(a => {
     const { sample, nextSession } = session.step()
     const { value: [_, nextInput], next } = sf.step(sample, a) // eslint-disable-line no-unused-vars
-    dispose = switchInput(nextSession, nextInput, next, dispose)
+    forget = switchInput(nextSession, nextInput, next, forget)
   })
 
-  return dispose
+  return forget
 }
 
-const switchInput = (session, input, sf, dispose) => {
-  dispose()
+const switchInput = (session, input, sf, forget) => {
+  forget.forget()
   return loop(session, input, sf)
 }

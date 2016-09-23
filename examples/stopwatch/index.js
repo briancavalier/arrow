@@ -1,6 +1,6 @@
 import { time, both, unsplit, pipe } from '../../src/signal'
 import { map, or, eventTime, accum } from '../../src/event'
-import { and, newInput, never} from '../../src/input'
+import { and, signalGen, never} from '../../src/signalgen'
 import { clockSession } from '../../src/session'
 import { loop } from '../../src/run'
 import { animationFrame } from '../../src/dom'
@@ -14,10 +14,10 @@ const anySignal = (...signals) => signals.reduce(or)
 const container = document.getElementById('app')
 const patch = init([events, attrs, clss])
 
-const [start, startInput] = newInput()
-const [stop, stopInput] = newInput()
-const [reset, resetInput] = newInput()
-const [lap, lapInput] = newInput()
+const [start, startInput] = signalGen()
+const [stop, stopInput] = signalGen()
+const [reset, resetInput] = signalGen()
+const [lap, lapInput] = signalGen()
 
 const timerInputs = anyInput(startInput, stopInput, resetInput, lapInput)
 const stoppedInputs = anyInput(timerInputs, never)
