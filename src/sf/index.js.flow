@@ -1,0 +1,15 @@
+export type Time = number
+
+export type SFStep<A, B> = {
+  value: B,
+  next: SF<A, B>
+}
+
+export type SF<A, B> = {
+  step: (t: Time, a: A) => SFStep<A, B>
+}
+
+export * from './id'
+export * from './always'
+export * from './arr'
+export * from './time'

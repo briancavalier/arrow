@@ -1,19 +1,10 @@
-// @flow
-import type { SignalGen, ForgetSG } from './input'
-import type { SignalFunc } from './signal'
-import type { Session } from './session'
+import { curry3 } from '@most/prelude'
 
-export function loop <T, A, B> (session: Session<T>, input: SignalGen<A>, sf: SignalFunc<T, A, [B, SignalGen<A>]>): ForgetSG {
-  let forget = input.listen(a => {
-    const { sample, nextSession } = session.step()
-    const { value: [_, nextInput], next } = sf.step(sample, a) // eslint-disable-line no-unused-vars
-    forget = switchInput(nextSession, nextInput, next, forget)
-  })
+export const run = curry3((sf, sg, s) =>
+  sg.when(sg => step(sf, sg, s)))
 
-  return forget
-}
-
-const switchInput = (session, input, sf, forget) => {
-  forget.forget()
-  return loop(session, input, sf)
+const step = (sf, sg, s) => {
+  const { sample, next: nextSession } = s.step()
+  const { value, next } = sf.step(sample, sg.value())
+  return run(next, value, nextSession)
 }

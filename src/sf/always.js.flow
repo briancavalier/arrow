@@ -1,0 +1,4 @@
+// @flow
+import { type SF } from '.'
+
+declare export function always <A> (a: A): SF<any, A>

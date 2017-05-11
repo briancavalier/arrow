@@ -1,0 +1,4 @@
+// @flow
+import { type SF } from '.'
+
+declare export function arr <A, B> (f: (A) => B): SF<A, B>

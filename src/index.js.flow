@@ -1,0 +1,49 @@
+// @flow
+export type Pair<A, B> = [A, B]
+
+export type Time = number
+
+// A session provides a sample of state that will be fed into
+// a signal function when events occur
+export type Session<A> = {
+  step: () => SessionStep<A>
+}
+
+export type SessionStep<A> = {
+  sample: A,
+  next: Session<A>
+}
+
+export type Input<A> = {
+  when: (f: InputHandler<A>) => void,
+  value: () => Event<A>
+}
+
+export type Event<A> = {
+  map: <B> (f: (A) => B) => B,
+  concat: (Event<A>) => Event<A>
+}
+
+export type InputHandler<A> = (input: Input<A>) => void
+
+import { type SF } from './sf'
+
+export * from './sf'
+
+declare export function input <A> (): Input<A>
+
+declare export function eitherInput <A, B> (ia: Input<A>, ib: Input<B>): Input<Pair<Event<A>, Event<B>>>
+declare export function eitherInput <A, B> (ia: Input<A>): (ib: Input<B>) => Input<Pair<Event<A>, Event<B>>>
+
+declare export function countSession (delta: number): Session<number>
+declare export function clockSession (): Session<number>
+
+declare export function compose <A, B, C> (bc: SF<B, C>, ab: SF<A, B>): SF<A, C>
+
+declare export function parallel <A, B, C, D> (ab: SF<A, B>, cd: SF<C, D>): SF<[A, C], [B, D]>
+
+declare export function split <A, B, C> (ab: SF<A, B>, ac: SF<A, C>): SF<[A, [B, C]]>
+
+declare export function hold<A> (a: A): SF<Event<A>, A>
+
+declare export function simpleAssertSF <A, B> (assert: (a: A, b: B) => B, ab: SF<A, B>): boolean

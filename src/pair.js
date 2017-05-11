@@ -1,19 +1,11 @@
-// @flow
+import { curry2 } from '@most/prelude'
 
-// Turn a single value into a pair
-export function dup <A> (a: A): [A, A] {
-  return pair(a, a)
-}
+export const dup = a => pair(a, a)
 
-export function pair <A, B> (a: A, b: B): [A, B] {
-  return [a, b]
-}
+export const pair = curry2((a, b) => [a, b])
 
-// swap the contents of a pair
-export function swap <A, B> ([a, b]: [A, B]): [B, A] {
-  return [b, a]
-}
+export const fst = pair => pair[0]
 
-export function uncurry <A, B, C> (f: (a: A, b: B) => C): (ab: [A, B]) => C {
-  return ([a, b]) => f(a, b)
-}
+export const snd = pair => pair[1]
+
+export const swap = ab => pair(snd(ab), fst(ab))

@@ -1,14 +1,12 @@
 [ignore]
-.*/\.git/.*
-.*/coverage/.*
+.*/experiments/.*
+.*/examples/.*
+.*/dist/.*
 .*/node_modules/findup/.*
-.*/node_modules/flow-remove-types/.*
-.*/node_modules/khaos/.*
-.*/node_modules/rollup-plugin-flow/.*
 
 [include]
 src/
-examples/
+test/
 
 [libs]
 
