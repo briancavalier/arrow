@@ -1,0 +1,3 @@
+import { type SF } from '../sf'
+
+declare export function hold <A> (a: A): SF<Event<A>, A>
