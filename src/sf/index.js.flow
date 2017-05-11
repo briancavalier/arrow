@@ -1,3 +1,4 @@
+// @flow
 export type Time = number
 
 export type SFStep<A, B> = {

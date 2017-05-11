@@ -25,3 +25,8 @@ declare export function liftA2Event <A, B, C> (f: (A, B) => C, ea: Event<A>, eb:
 declare export function liftA2Event <A, B, C> (f: (A, B) => C): (ea: Event<A>, eb: Event<B>) => Event<C>
 declare export function liftA2Event <A, B, C> (f: (A, B) => C, ea: Event<A>): (eb: Event<B>) => Event<C>
 declare export function liftA2Event <A, B, C> (f: (A, B) => C): (ea: Event<A>) => (eb: Event<B>) => Event<C>
+
+declare export function mergeEvent <A> (f: (A, A) => A, l: Event<A>, r: Event<A>): Event<A>
+declare export function mergeEvent <A> (f: (A, A) => A): (l: Event<A>, r: Event<A>) => Event<A>
+declare export function mergeEvent <A> (f: (A, A) => A, l: Event<A>): (r: Event<A>) => Event<A>
+declare export function mergeEvent <A> (f: (A, A) => A): (l: Event<A>) => (r: Event<A>) => Event<A>

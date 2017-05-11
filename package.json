@@ -39,6 +39,7 @@
   },
   "homepage": "https://github.com/briancavalier/arrow#readme",
   "devDependencies": {
+    "@briancavalier/assert": "^3.4.0",
     "babel-eslint": "^6.1.2",
     "buba": "^4.0.2",
     "cpy-cli": "^1.0.1",

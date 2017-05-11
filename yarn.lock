@@ -2,6 +2,14 @@
 # yarn lockfile v1
 
 
+"@briancavalier/assert@^3.4.0":
+  version "3.4.0"
+  resolved "https://registry.yarnpkg.com/@briancavalier/assert/-/assert-3.4.0.tgz#5c198433c3f25c882bdb125b89fb0b11c634dece"
+  dependencies:
+    "@most/prelude" "^1.5.0"
+    lodash.isequal "^4.5.0"
+    object-inspect "^1.2.1"
+
 "@most/prelude@^1.5.0":
   version "1.6.0"
   resolved "https://registry.yarnpkg.com/@most/prelude/-/prelude-1.6.0.tgz#4256e3a902ddf04c1f07afca2267526195072e13"
@@ -1470,6 +1478,10 @@ lodash.isarray@^3.0.0:
   version "3.0.4"
   resolved "https://registry.yarnpkg.com/lodash.isarray/-/lodash.isarray-3.0.4.tgz#79e4eb88c36a8122af86f844aa9bcd851b5fbb55"
 
+lodash.isequal@^4.5.0:
+  version "4.5.0"
+  resolved "https://registry.yarnpkg.com/lodash.isequal/-/lodash.isequal-4.5.0.tgz#415c4478f2bcc30120c22ce10ed3226f7d3e18e0"
+
 lodash.keys@^3.0.0:
   version "3.1.2"
   resolved "https://registry.yarnpkg.com/lodash.keys/-/lodash.keys-3.1.2.tgz#4dbc0472b156be50a0b286855d1bd0b0c656098a"
@@ -1695,6 +1707,10 @@ nyc@^10.3.2:
 object-assign@^4.0.1, object-assign@^4.1.0:
   version "4.1.1"
   resolved "https://registry.yarnpkg.com/object-assign/-/object-assign-4.1.1.tgz#2109adc7965887cfc05cbbd442cac8bfbb360863"
+
+object-inspect@^1.2.1:
+  version "1.2.2"
+  resolved "https://registry.yarnpkg.com/object-inspect/-/object-inspect-1.2.2.tgz#c82115e4fcc888aea14d64c22e4f17f6a70d5e5a"
 
 object.omit@^2.0.0:
   version "2.0.1"

@@ -9,6 +9,7 @@ class NoOccurrence {
     return e === this
   }
 
+  // istanbul ignore next
   toString () {
     return 'NonOccurrence'
   }
@@ -26,6 +27,11 @@ export const liftA2Event = curry3((f, e1, e2) =>
     ? NonOccurrence
     : occur(f(e1.value, e2.value)))
 
+export const mergeEvent = curry3((f, l, r) =>
+  l === NonOccurrence ? r
+    : r === NonOccurrence ? l
+    : occur(f(l.value, r.value)))
+
 class Occurrence {
   constructor (value) {
     this.value = value
@@ -39,6 +45,7 @@ class Occurrence {
     return e !== NoOccurrence && e.value === this.value
   }
 
+  // istanbul ignore next
   toString () {
     return `Occurrence ${this.value}`
   }

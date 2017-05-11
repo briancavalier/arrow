@@ -9,10 +9,11 @@ import { merge, mergeL, mergeR } from './merge'
 
 const fail = () => {}
 const eventEquals = (e1, e2) => e1.equals(e2)
-const add = (a, b) => a + b
+const concat = (a, b) => a + b
 
 const left = x => pair(occur(x), NonOccurrence)
 const right = x => pair(NonOccurrence, occur(x))
+const bothString = x => pair(occur(String(x)), occur(String(x + 1)))
 
 describe('merge', () => {
   describe('merge', () => {
@@ -32,9 +33,9 @@ describe('merge', () => {
 
     it('merge(f).step(t, [l, r]) === occur(f(l, r))', () => {
       assertSF(countSession(1),
-        x => pair(occur(String(x)), occur(String(x + 1))),
-        (t, a, b) => eventEquals(liftA2Event(add, fst(a), snd(a)), b),
-        merge(add))
+        bothString,
+        (t, a, b) => eventEquals(liftA2Event(concat, fst(a), snd(a)), b),
+        merge(concat))
     })
   })
 
@@ -55,7 +56,7 @@ describe('merge', () => {
 
     it('mergeL().step(t, [l, r]) === l', () => {
       assertSF(countSession(1),
-        x => pair(occur(String(x)), occur(String(x + 1))),
+        bothString,
         (t, a, b) => eventEquals(fst(a), b),
         mergeL())
     })
@@ -78,7 +79,7 @@ describe('merge', () => {
 
     it('mergeR().step(t, [l, r]) === r', () => {
       assertSF(countSession(1),
-        x => pair(occur(String(x)), occur(String(x + 1))),
+        bothString,
         (t, a, b) => eventEquals(snd(a), b),
         mergeR())
     })
