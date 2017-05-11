@@ -1,0 +1,10 @@
+// @flow
+import { type SF } from '../sf'
+import { type Event } from './event'
+import { type Pair } from '../pair'
+
+export type Merge<A> = SF<Pair<Event<A>, Event<A>>, Event<A>>
+
+declare export function merge <A> (f: (l: A, r: A) => A): Merge<A>
+declare export function mergeL <A> (): Merge<A>
+declare export function mergeR <A> (): Merge<A>

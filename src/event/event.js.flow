@@ -1,0 +1,27 @@
+// @flow
+export type Occurrence<A> = {
+  value: A,
+  map: <B> (f: (A) => B) => Event<B>,
+  equals: (e: Event<A>) => boolean
+}
+
+export type NoOccurrence = {
+  map: <B> (f: (any) => B) => Event<B>,
+  equals: (e: Event<any>) => boolean
+}
+
+declare export var NonOccurrence: NoOccurrence
+
+export type Event<A> = Occurrence<A> | NoOccurrence
+
+declare export function occur <A> (a: A): Event<A>
+
+declare export function foldEvent <A, B> (b: B, f: (A) => B, e: Event<A>): B
+declare export function foldEvent <A, B> (b: B): (f: (A) => B, e: Event<A>) => B
+declare export function foldEvent <A, B> (b: B, f: (A) => B): (e: Event<A>) => B
+declare export function foldEvent <A, B> (b: B): (f: (A) => B) => (e: Event<A>) => B
+
+declare export function liftA2Event <A, B, C> (f: (A, B) => C, ea: Event<A>, eb: Event<B>): Event<C>
+declare export function liftA2Event <A, B, C> (f: (A, B) => C): (ea: Event<A>, eb: Event<B>) => Event<C>
+declare export function liftA2Event <A, B, C> (f: (A, B) => C, ea: Event<A>): (eb: Event<B>) => Event<C>
+declare export function liftA2Event <A, B, C> (f: (A, B) => C): (ea: Event<A>) => (eb: Event<B>) => Event<C>

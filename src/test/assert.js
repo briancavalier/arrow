@@ -11,7 +11,7 @@ const stepAssertSF = (n, assert, sf, f, s) => {
   const { value, next } = sf.step(sample, a)
 
   if (!assert(sample, a, value)) {
-    throw new Error(`assert failed: ${sample}: ${a} -/> ${value}`)
+    throw new Error(`assert failed: ${sample}: ${a} -> ${value}`)
   }
 
   return stepAssertSF(n - 1, assert, next, f, nextSession)

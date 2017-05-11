@@ -1,0 +1,13 @@
+// @flow
+export type Pair<A, B> = [A, B]
+
+declare export function dup <A> (a: A): Pair<A, A>
+
+declare export function pair <A, B> (a: A, b: B): Pair<A, B>
+declare export function pair <A, B> (a: A): (b: B) => Pair<A, B>
+
+declare export function fst <A, B> (ab: Pair<A, B>): A
+
+declare export function snd <A, B> (ab: Pair<A, B>): B
+
+declare export function swap <A, B> (ab: Pair<A, B>): Pair<B, A>
