@@ -1,0 +1,4 @@
+// @flow
+import { type SF } from '.'
+
+declare export function id <A> (): SF<A, A>

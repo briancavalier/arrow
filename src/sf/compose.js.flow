@@ -1,0 +1,8 @@
+// @flow
+import { type SF } from '.'
+
+declare export function compose <A, B, C> (bc: SF<B, C>, ab: SF<A, B>): SF<A, C>
+declare export function compose <A, B, C> (bc: SF<B, C>): (ab: SF<A, B>) => SF<A, C>
+
+declare export function pipe <A, B, C> (ab: SF<A, B>, bc: SF<B, C>): SF<A, C>
+declare export function pipe <A, B, C> (ab: SF<A, B>): (bc: SF<B, C>) => SF<A, C>

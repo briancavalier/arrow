@@ -1,43 +1,33 @@
-// @flow
+const sessionStep = (sample, next) => ({ sample, next })
 
-// A session provides a sample of state that will be fed into
-// a signal function when events occur
-export type Session<A> = {
-  step: () => SessionStep<A>
-}
-
-export type SessionStep<A> = {
-  sample: A,
-  nextSession: Session<A>
-}
-
-// Session that yields an incrementing count at each step
-export const countSession = (): Session<number> => new CountSession(1)
+// Session that yields an incrementing count
+export const countSession = delta =>
+  new CountSession(delta, 0)
 
 class CountSession {
-  count: number
-
-  constructor (count: number) {
+  constructor (delta, count) {
+    this.delta = delta
     this.count = count
   }
 
-  step (): SessionStep<number> {
-    return { sample: this.count, nextSession: new CountSession(this.count + 1) }
+  step () {
+    return sessionStep(this.count, new CountSession(this.delta, this.count + this.delta))
   }
 }
 
-// Session that yields a time delta from its start time at each step
-export const clockSession = (): Session<number> => new ClockSession(Date.now())
+// Session that yields time delta from the instant
+// it is created
+export const clockSession = () =>
+  new ClockDeltaSession(Date.now, Date.now())
 
-class ClockSession {
-  start: number;
-
-  constructor (start: number) {
+class ClockDeltaSession {
+  constructor (now, start) {
+    this.now = now
     this.start = start
   }
 
-  step (): SessionStep<number> {
-    return { sample: Date.now() - this.start, nextSession: new ClockSession(this.start) }
+  step () {
+    const now = this.now
+    return sessionStep(now() - this.start, new ClockDeltaSession(now, this.start))
   }
 }
-

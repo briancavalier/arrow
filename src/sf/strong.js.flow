@@ -1,0 +1,10 @@
+// @flow
+import { type SF } from '.'
+import { type Pair } from '../pair'
+
+declare export function first <A, B, C> (ab: SF<A, B>): SF<Pair<A, C>, Pair<B, C>>
+
+declare export function unfirst <A, B, C> (ab: SF<Pair<A, C>, Pair<B, C>>, c: C): SF<A, B>
+declare export function unfirst <A, B, C> (ab: SF<Pair<A, C>, Pair<B, C>>): (c: C) => SF<A, B>
+
+declare export function unsplit <A, B, C> (f: (A, B) => C): SF<Pair<A, B>, C>

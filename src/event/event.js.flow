@@ -1,0 +1,32 @@
+// @flow
+export type Occurrence<A> = {
+  value: A,
+  map: <B> (f: (A) => B) => Event<B>,
+  equals: (e: Event<A>) => boolean
+}
+
+export type NoOccurrence<A> = {
+  map: <B> (f: (A) => B) => Event<B>,
+  equals: (e: Event<any>) => boolean
+}
+
+export type Event<A> = Occurrence<A> | NoOccurrence<A>
+
+declare export function occur <A> (a: A): Event<A>
+declare export function none <A> (): Event<A>
+declare export function occurred <A> (ea: Event<A>): boolean
+
+declare export function foldEvent <A, B> (b: B, f: (A) => B, e: Event<A>): B
+declare export function foldEvent <A, B> (b: B): (f: (A) => B, e: Event<A>) => B
+declare export function foldEvent <A, B> (b: B, f: (A) => B): (e: Event<A>) => B
+declare export function foldEvent <A, B> (b: B): (f: (A) => B) => (e: Event<A>) => B
+
+declare export function liftA2Event <A, B, C> (f: (A, B) => C, ea: Event<A>, eb: Event<B>): Event<C>
+declare export function liftA2Event <A, B, C> (f: (A, B) => C): (ea: Event<A>, eb: Event<B>) => Event<C>
+declare export function liftA2Event <A, B, C> (f: (A, B) => C, ea: Event<A>): (eb: Event<B>) => Event<C>
+declare export function liftA2Event <A, B, C> (f: (A, B) => C): (ea: Event<A>) => (eb: Event<B>) => Event<C>
+
+declare export function mergeEvent <A> (f: (A, A) => A, l: Event<A>, r: Event<A>): Event<A>
+declare export function mergeEvent <A> (f: (A, A) => A): (l: Event<A>, r: Event<A>) => Event<A>
+declare export function mergeEvent <A> (f: (A, A) => A, l: Event<A>): (r: Event<A>) => Event<A>
+declare export function mergeEvent <A> (f: (A, A) => A): (l: Event<A>) => (r: Event<A>) => Event<A>

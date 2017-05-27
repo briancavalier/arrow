@@ -1,0 +1,15 @@
+// @flow
+
+// A session provides a sample of state that will be fed into
+// a signal function when events occur
+export type Session<A> = {
+  step: () => SessionStep<A>
+}
+
+export type SessionStep<A> = {
+  sample: A,
+  next: Session<A>
+}
+
+declare export function countSession (delta: number): Session<number>
+declare export function clockSession (): Session<number>

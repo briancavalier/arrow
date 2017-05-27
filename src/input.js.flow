@@ -1,0 +1,14 @@
+// @flow
+import { type Pair } from './pair'
+
+export type Input<A> = {
+  when: (f: InputHandler<A>) => void,
+  value: () => Event<A>
+}
+
+export type InputHandler<A> = (input: Input<A>) => void
+
+declare export function input <A> (): Input<A>
+
+declare export function eitherInput <A, B> (ia: Input<A>, ib: Input<B>): Input<Pair<Event<A>, Event<B>>>
+declare export function eitherInput <A, B> (ia: Input<A>): (ib: Input<B>) => Input<Pair<Event<A>, Event<B>>>
