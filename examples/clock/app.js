@@ -89,6 +89,7 @@ function parseSelector(selector) {
 var h = function h() {
     var selector = arguments[0]; // required
     var childrenOrText = arguments[2]; // optional
+    // tslint:disable-next-line:prefer-const
     var _a = parseSelector(selector), tagName = _a.tagName, id = _a.id, className = _a.className;
     var props = {};
     var children;
@@ -141,6 +142,7 @@ function sanitizeChildren(childrenOrText, parent) {
     return children;
 }
 
+// tslint:enable:max-line-length
 function hh(tagName) {
     return function () {
         var selector = arguments[0];
@@ -152,7 +154,7 @@ function hh(tagName) {
             else if (typeof data === 'object')
                 { return h(tagName + selector, data, children); }
             else
-                { return h(tagName + selector, data || {}); } }
+                { return h(tagName + selector, (data || {})); } }
         if (Array.isArray(selector))
             { return h(tagName, {}, selector); }
         else if (typeof selector === 'object')
@@ -161,13 +163,13 @@ function hh(tagName) {
             { return h(tagName, selector || {}); }
     };
 }
-
 function isValidString(param) {
     return typeof param === 'string' && param.length > 0;
 }
 function isSelector(param) {
     return isValidString(param) && (param[0] === '.' || param[0] === '#');
 }
+
 
 
 
@@ -381,6 +383,7 @@ var svg = createSVGHelper();
 // $ : value ends with
 var attrModifiers = ['~', '*', '|', '^', '$'];
 function matchAttribute(cssSelector, attrs) {
+    // tslint:disable-next-line:prefer-const
     var _a = cssSelector.split('='), attribute = _a[0], value = _a[1];
     var attributeLength = attribute.length - 1;
     var modifier = attribute[attributeLength];
@@ -437,7 +440,6 @@ function matchPsuedoSelector(cssSelector, vNode) {
         case ':root': return isRoot(vNode);
         default: return false;
     }
-    
 }
 function vNodeContainsText(text, vNode) {
     if (vNode.text)
@@ -460,8 +462,8 @@ function matchNthChild(index, vNode) {
     var children = parent.children;
     if (!children || children.length === 0)
         { return false; }
-    if (index.indexOf('+') === -1 && !isNaN(parseInt(index)))
-        { return children[parseInt(index)] === vNode; }
+    if (index.indexOf('+') === -1 && !isNaN(parseInt(index, 10)))
+        { return children[parseInt(index, 10)] === vNode; }
     var childIndex = children.indexOf(vNode);
     if (index === 'odd')
         { return childIndex % 2 !== 0; }
@@ -469,8 +471,8 @@ function matchNthChild(index, vNode) {
         { return childIndex % 2 === 0; }
     if (index.indexOf('+') > -1) {
         var _a = index.split('+'), multipleString = _a[0], offsetString = _a[1];
-        var multiple = parseInt(multipleString.split('n')[0]);
-        var offset = parseInt(offsetString);
+        var multiple = parseInt(multipleString.split('n')[0], 10);
+        var offset = parseInt(offsetString, 10);
         if (multiple === 0)
             { return true; }
         return childIndex !== 0 && childIndex % (multiple + offset) === 0;
@@ -496,6 +498,7 @@ function matchesSelector(cssSelector, vNode) {
     return matchBasicCssSelector(cssSelector, vNode);
 }
 
+// tslint:disable-next-line:cyclomatic-complexity
 function hasCssSelector(cssSelector, vNode) {
     cssSelector = cssSelector.trim();
     if (cssSelector === '*')
@@ -574,106 +577,48 @@ function traverseParentVNodes(predicate, vNode) {
 
 /** @license MIT License (c) copyright 2010-2016 original author or authors */
 
-// Non-mutating array operations
+  // Non-mutating array operations
 
-// cons :: a -> [a] -> [a]
-// a with x prepended
-
-
-// append :: a -> [a] -> [a]
-// a with x appended
-
-
-// drop :: Int -> [a] -> [a]
-// drop first n elements
-
-
-// tail :: [a] -> [a]
-// drop head element
-
-
-// copy :: [a] -> [a]
-// duplicate a (shallow duplication)
-
-
-// map :: (a -> b) -> [a] -> [b]
-// transform each element with f
-
-
-// reduce :: (a -> b -> a) -> a -> [b] -> a
-// accumulate via left-fold
-
-
-// replace :: a -> Int -> [a]
-// replace element at index
-
-
-// remove :: Int -> [a] -> [a]
-// remove element at index
-
-
-// removeAll :: (a -> boolean) -> [a] -> [a]
-// remove all elements matching a predicate
-
-
-// findIndex :: a -> [a] -> Int
-// find index of x in a, from the left
-
-
-// isArrayLike :: * -> boolean
-// Return true iff x is array-like
-
-/** @license MIT License (c) copyright 2010-2016 original author or authors */
-
-// id :: a -> a
-
-
-// compose :: (b -> c) -> (a -> b) -> (a -> c)
-
-
-// apply :: (a -> b) -> a -> b
-
-
-// curry2 :: ((a, b) -> c) -> (a -> b -> c)
-function curry2 (f) {
-  function curried (a, b) {
-    switch (arguments.length) {
-      case 0: return curried
-      case 1: return function (b) { return f(a, b); }
-      default: return f(a, b)
+  // cons :: a -> [a] -> [a]
+  // a with x prepended
+  // curry2 :: ((a, b) -> c) -> (a -> b -> c)
+  function curry2 (f) {
+    function curried (a, b) {
+      switch (arguments.length) {
+        case 0: return curried
+        case 1: return function (b) { return f(a, b); }
+        default: return f(a, b)
+      }
     }
+    return curried
   }
-  return curried
-}
 
-// curry3 :: ((a, b, c) -> d) -> (a -> b -> c -> d)
-function curry3 (f) {
-  function curried (a, b, c) { // eslint-disable-line complexity
-    switch (arguments.length) {
-      case 0: return curried
-      case 1: return curry2(function (b, c) { return f(a, b, c); })
-      case 2: return function (c) { return f(a, b, c); }
-      default:return f(a, b, c)
+  // curry3 :: ((a, b, c) -> d) -> (a -> b -> c -> d)
+  function curry3 (f) {
+    function curried (a, b, c) { // eslint-disable-line complexity
+      switch (arguments.length) {
+        case 0: return curried
+        case 1: return curry2(function (b, c) { return f(a, b, c); })
+        case 2: return function (c) { return f(a, b, c); }
+        default:return f(a, b, c)
+      }
     }
+    return curried
   }
-  return curried
-}
 
-// curry4 :: ((a, b, c, d) -> e) -> (a -> b -> c -> d -> e)
-function curry4 (f) {
-  function curried (a, b, c, d) { // eslint-disable-line complexity
-    switch (arguments.length) {
-      case 0: return curried
-      case 1: return curry3(function (b, c, d) { return f(a, b, c, d); })
-      case 2: return curry2(function (c, d) { return f(a, b, c, d); })
-      case 3: return function (d) { return f(a, b, c, d); }
-      default:return f(a, b, c, d)
+  // curry4 :: ((a, b, c, d) -> e) -> (a -> b -> c -> d -> e)
+  function curry4 (f) {
+    function curried (a, b, c, d) { // eslint-disable-line complexity
+      switch (arguments.length) {
+        case 0: return curried
+        case 1: return curry3(function (b, c, d) { return f(a, b, c, d); })
+        case 2: return curry2(function (c, d) { return f(a, b, c, d); })
+        case 3: return function (d) { return f(a, b, c, d); }
+        default:return f(a, b, c, d)
+      }
     }
+    return curried
   }
-  return curried
-}
-
-/** @license MIT License (c) copyright 2016 original author or authors */
 
 var BaseModule = (function () {
     function BaseModule() {
@@ -734,7 +679,6 @@ var AttributesModule = (function (_super) {
     return AttributesModule;
 }(BaseModule));
 function updateAttributes(formerVNode, vNode) {
-    var key;
     var attributeValue;
     var formerAttributeValue;
     var element = vNode.element;
@@ -745,7 +689,7 @@ function updateAttributes(formerVNode, vNode) {
         { return; }
     formerAttributes = formerAttributes || {};
     attributes = attributes || {};
-    for (key in attributes) {
+    for (var key in attributes) {
         attributeValue = attributes[key];
         formerAttributeValue = formerAttributes[key];
         if (formerAttributeValue !== attributeValue) {
@@ -760,7 +704,7 @@ function updateAttributes(formerVNode, vNode) {
             }
         }
     }
-    for (key in formerAttributes)
+    for (var key in formerAttributes)
         { if (!(key in attributes))
             { element.removeAttribute(key); } }
 }
@@ -905,7 +849,6 @@ var PropsModule = (function (_super) {
     return PropsModule;
 }(BaseModule));
 function updateProps(formerVNode, vNode) {
-    var key;
     var element = vNode.element;
     var formerProps = formerVNode.props;
     var props = vNode.props;
@@ -913,10 +856,10 @@ function updateProps(formerVNode, vNode) {
         { return; }
     formerProps = formerProps || {};
     props = props || {};
-    for (key in formerProps)
+    for (var key in formerProps)
         { if (PROPERTIES_TO_SKIP.indexOf(key) === -1 && !props[key])
             { delete element[key]; } }
-    for (key in props)
+    for (var key in props)
         { if (PROPERTIES_TO_SKIP.indexOf(key) === -1)
             { element[key] = props[key]; } }
 }
@@ -964,7 +907,6 @@ function nextFrame(fn) {
         requestAnimationFrame(fn);
     });
 }
-
 function setValueOnNextFrame(obj, prop, value) {
     nextFrame(function () {
         obj[prop] = value;
@@ -972,7 +914,6 @@ function setValueOnNextFrame(obj, prop, value) {
 }
 function updateStyle(formerVNode, vNode) {
     var styleValue;
-    var key;
     var element = vNode.element;
     var formerStyle = formerVNode.props.style;
     var style = vNode.props.style;
@@ -981,16 +922,18 @@ function updateStyle(formerVNode, vNode) {
     formerStyle = formerStyle || {};
     style = style || {};
     var formerHasDelayedProperty = !!formerStyle.delayed;
-    for (key in formerStyle)
+    // tslint:disable-next-line:prefer-const
+    for (var key in formerStyle)
         { if (!style[key])
             { element.style[key] = ''; } }
-    for (key in style) {
+    for (var key in style) {
         styleValue = style[key];
         if (key === 'delayed') {
-            for (key in style.delayed) {
-                styleValue = style.delayed[key];
-                if (!formerHasDelayedProperty || styleValue !== formerStyle.delayed[key])
-                    { setValueOnNextFrame(element.style, key, styleValue); }
+            // tslint:disable-next-line:prefer-const
+            for (var delayKey in style.delayed) {
+                styleValue = style.delayed[delayKey];
+                if (!formerHasDelayedProperty || styleValue !== formerStyle.delayed[delayKey])
+                    { setValueOnNextFrame(element.style, delayKey, styleValue); }
             }
         }
         else if (key !== 'remove') {
@@ -999,26 +942,24 @@ function updateStyle(formerVNode, vNode) {
     }
 }
 function applyDestroyStyle(vNode) {
-    var key;
     var element = vNode.element;
     var style = vNode.props.style;
     if (!style || !style.destroy)
         { return; }
     var destroy = style.destroy;
-    for (key in destroy)
+    for (var key in destroy)
         { element.style[key] = destroy[key]; }
 }
 function applyRemoveStyle(vNode, callback) {
     var style = vNode.props.style;
     if (!style || !style.remove)
         { return callback(); }
-    var key;
     var element = vNode.element;
     var index = 0;
     var computedStyle;
     var listenerCount = 0;
     var appliedStyles = [];
-    for (key in style) {
+    for (var key in style) {
         appliedStyles.push(key);
         element.style[key] = style[key];
     }
@@ -1376,7 +1317,7 @@ Always.prototype.step = function step (t, a) {
   return this
 };
 
-var time = function () { return new Time(); };
+var time$1 = function () { return new Time(); };
 
 var Time = function Time () {};
 
@@ -1456,28 +1397,50 @@ Parallel.prototype.step = function step (t, ac) {
 
 var NoOccurrence = function NoOccurrence () {};
 
-NoOccurrence.prototype.map = function map (f) {
+NoOccurrence.prototype.map = function map$$1 (f) {
   return this
 };
 
-NoOccurrence.prototype.concat = function concat (e) {
-  return e
+NoOccurrence.prototype.equals = function equals (e) {
+  return e === this
+};
+
+// istanbul ignore next
+NoOccurrence.prototype.toString = function toString () {
+  return 'NonOccurrence'
 };
 
 var NonOccurrence = new NoOccurrence();
 
 var occur = function (x) { return new Occurrence(x); };
 
+var none = function () { return NonOccurrence; };
+
+var occurred = function (e) { return e !== NonOccurrence; };
+
+
+
+
+
+var mergeEvent = curry3(function (f, l, r) { return l === NonOccurrence ? r
+    : r === NonOccurrence ? l
+    : occur(f(l.value, r.value)); });
+
 var Occurrence = function Occurrence (value) {
   this.value = value;
 };
 
-Occurrence.prototype.map = function map (f) {
+Occurrence.prototype.map = function map$$1 (f) {
   return new Occurrence(f(this.value))
 };
 
-Occurrence.prototype.concat = function concat (e) {
-  return e === NonOccurrence ? this : new Occurrence(this.value.concat(e.value))
+Occurrence.prototype.equals = function equals (e) {
+  return occurred(e) && e.value === this.value
+};
+
+// istanbul ignore next
+Occurrence.prototype.toString = function toString () {
+  return ("Occurrence " + (this.value))
 };
 
 var Hold = function Hold (value) {
@@ -1485,15 +1448,18 @@ var Hold = function Hold (value) {
 };
 
 Hold.prototype.step = function step (t, a) {
-  return a === NonOccurrence
-    ? { value: this.value, next: this }
-    : { value: a.value, next: new Hold(a.value) }
+  return occurred(a)
+    ? { value: a.value, next: new Hold(a.value) }
+    : { value: this.value, next: this }
 };
 
-var Merge = function Merge () {};
+var Merge = function Merge (f) {
+  this.f = f;
+};
 
 Merge.prototype.step = function step (t, es) {
-  return { value: fst(es).concat(snd(es)), next: this }
+  var value = mergeEvent(this.f, fst(es), snd(es));
+  return { value: value, next: this }
 };
 
 var noop = function (_) { return undefined; };
@@ -1510,7 +1476,7 @@ var occurs = function (x, input) {
 };
 
 var SimpleInput = function SimpleInput () {
-  this._value = NonOccurrence;
+  this._value = none();
   this.f = noop;
 };
 
@@ -1599,7 +1565,7 @@ var stepAssertSF = function (n, assert, sf, f, s) {
   var next = ref$1.next;
 
   if (!assert(sample, a, value)) {
-    throw new Error(("assert failed: " + sample + ": " + a + " -/> " + value))
+    throw new Error(("assert failed: " + sample + ": " + a + " -> " + value))
   }
 
   return stepAssertSF(n - 1, assert, next, f, nextSession)
@@ -1625,7 +1591,7 @@ var tick = function (t) { return [
   after(1000)
 ]; };
 
-var clock = pipe(time(), arr(tick));
+var clock = pipe(time$1(), arr(tick));
 
 runVdom(clock, patch, vnode, tick(0))(clockSession());
 

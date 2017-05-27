@@ -1,0 +1,6 @@
+// @flow
+import { type SF } from '.'
+import { type Pair } from '../pair'
+
+declare export function parallel <A, B, C, D> (ab: SF<A, B>, cd: SF<C, D>): SF<Pair<A, B>, Pair<C, D>>
+declare export function parallel <A, B, C, D> (ab: SF<A, B>): (cd: SF<C, D>) => SF<Pair<A, B>, Pair<C, D>>

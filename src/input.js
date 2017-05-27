@@ -1,4 +1,4 @@
-import { NonOccurrence, occur } from './event'
+import { none, occur } from './event'
 import { curry2 } from '@most/prelude'
 import { pair } from './pair'
 
@@ -19,7 +19,7 @@ const occurs = (x, input) => {
 
 class SimpleInput {
   constructor () {
-    this._value = NonOccurrence
+    this._value = none()
     this.f = noop
   }
 

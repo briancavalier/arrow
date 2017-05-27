@@ -3,11 +3,20 @@ import { describe, it } from 'mocha'
 import { assert, eq } from '@briancavalier/assert'
 import { compose, id } from '@most/prelude'
 
-import { occur, NonOccurrence, foldEvent, liftA2Event, mergeEvent } from './event'
+import { occur, occurred, none, foldEvent, liftA2Event, mergeEvent } from './event'
 
 const concat = (a, b) => a + b
 
 describe('event', () => {
+  describe('occurred', () => {
+    it('occurred(occur(x)) === true', () => {
+      assert(occurred(occur(null)))
+    })
+
+    it('occurred(none()) === false', () => {
+      assert(!occurred(none()))
+    })
+  })
   describe('equals', () => {
     it('occur(x).equals(occur(y)) when x === y', () => {
       const x = {}
@@ -21,7 +30,7 @@ describe('event', () => {
 
   describe('map', () => {
     it('NonOccurrence.map(f) === NonOccurrence', () => {
-      assert(NonOccurrence.map(x => 123).equals(NonOccurrence))
+      assert(none().map(x => 123).equals(none()))
     })
 
     it('e.map(id) === e', () => {
@@ -40,7 +49,7 @@ describe('event', () => {
   describe('foldEvent', () => {
     it('x === foldEvent(x, _, NonOccurrence)', () => {
       const x = {}
-      eq(x, foldEvent(x, _ => {}, NonOccurrence))
+      eq(x, foldEvent(x, _ => {}, none()))
     })
 
     it('x === foldEvent(y, x => x, occur(x))', () => {
@@ -51,11 +60,11 @@ describe('event', () => {
 
   describe('liftA2Event', () => {
     it('liftA2Event(_, _, NonOccurrence) === NonOccurrence', () => {
-      eq(NonOccurrence, liftA2Event(concat, '', NonOccurrence))
+      eq(none(), liftA2Event(concat, occur(''), none()))
     })
 
     it('liftA2Event(_, NonOccurrence, _) === NonOccurrence', () => {
-      eq(NonOccurrence, liftA2Event(concat, NonOccurrence, ''))
+      eq(none(), liftA2Event(concat, none(), occur('')))
     })
 
     it('liftA2Event(f, ea, eb) === occur(f(ea.value, eb.value))', () => {
@@ -68,12 +77,12 @@ describe('event', () => {
   describe('mergeEvent', () => {
     it('mergeEvent(_, e, NonOccurrence) === e', () => {
       const e = occur('l')
-      assert(mergeEvent(concat, e, NonOccurrence).equals(e))
+      assert(mergeEvent(concat, e, none()).equals(e))
     })
 
     it('mergeEvent(_, NonOccurrence, e) === e', () => {
       const e = occur('r')
-      assert(mergeEvent(concat, NonOccurrence, e).equals(e))
+      assert(mergeEvent(concat, none(), e).equals(e))
     })
 
     it('mergeEvent(f, l, r) === occur(f(l.value, r.value))', () => {

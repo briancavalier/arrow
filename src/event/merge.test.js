@@ -4,15 +4,15 @@ import { assertSF } from '../test'
 import { countSession } from '../session'
 import { pair, fst, snd } from '../pair'
 
-import { occur, NonOccurrence, liftA2Event } from './event'
+import { occur, none, liftA2Event } from './event'
 import { merge, mergeL, mergeR } from './merge'
 
 const fail = () => {}
 const eventEquals = (e1, e2) => e1.equals(e2)
 const concat = (a, b) => a + b
 
-const left = x => pair(occur(x), NonOccurrence)
-const right = x => pair(NonOccurrence, occur(x))
+const left = x => pair(occur(x), none())
+const right = x => pair(none(), occur(x))
 const bothString = x => pair(occur(String(x)), occur(String(x + 1)))
 
 describe('merge', () => {

@@ -1,4 +1,4 @@
-import { NonOccurrence } from './event'
+import { occurred } from './event'
 
 export const hold = x => new Hold(x)
 
@@ -8,8 +8,8 @@ class Hold {
   }
 
   step (t, a) {
-    return a === NonOccurrence
-      ? { value: this.value, next: this }
-      : { value: a.value, next: new Hold(a.value) }
+    return occurred(a)
+      ? { value: a.value, next: new Hold(a.value) }
+      : { value: this.value, next: this }
   }
 }

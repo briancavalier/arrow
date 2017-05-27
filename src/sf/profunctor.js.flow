@@ -1,0 +1,13 @@
+// @flow
+import { type SF } from '.'
+
+declare export function promap <A, B, C, D> (ab: (A) => B, cd: (C) => D, bc: SF<B, C>): SF<A, D>
+declare export function promap <A, B, C, D> (ab: (A) => B): (cd: (C) => D, bc: SF<B, C>) => SF<A, D>
+declare export function promap <A, B, C, D> (ab: (A) => B, cd: (C) => D): (bc: SF<B, C>) => SF<A, D>
+declare export function promap <A, B, C, D> (ab: (A) => B): (cd: (C) => D) => (bc: SF<B, C>) => SF<A, D>
+
+declare export function lmap <A, B, C> (ab: (A) => B, bc: SF<B, C>): SF<A, C>
+declare export function lmap <A, B, C> (ab: (A) => B): (bc: SF<B, C>) => SF<A, C>
+
+declare export function rmap <B, C, D> (cd: (C) => D, bc: SF<B, C>): SF<B, D>
+declare export function rmap <B, C, D> (cd: (C) => D): (bc: SF<B, C>) => SF<B, D>

@@ -1,3 +1,3 @@
-export { occur, NonOccurrence } from './event'
-export { hold } from './hold'
-export { merge, mergeL, mergeR } from './merge'
+export * from './event'
+export * from './hold'
+export * from './merge'

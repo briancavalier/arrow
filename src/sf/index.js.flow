@@ -10,7 +10,8 @@ export type SF<A, B> = {
   step: (t: Time, a: A) => SFStep<A, B>
 }
 
-export * from './id'
 export * from './always'
 export * from './arr'
+export * from './compose'
+export * from './id'
 export * from './time'

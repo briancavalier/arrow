@@ -5,16 +5,16 @@ export type Occurrence<A> = {
   equals: (e: Event<A>) => boolean
 }
 
-export type NoOccurrence = {
-  map: <B> (f: (any) => B) => Event<B>,
+export type NoOccurrence<A> = {
+  map: <B> (f: (A) => B) => Event<B>,
   equals: (e: Event<any>) => boolean
 }
 
-declare export var NonOccurrence: NoOccurrence
-
-export type Event<A> = Occurrence<A> | NoOccurrence
+export type Event<A> = Occurrence<A> | NoOccurrence<A>
 
 declare export function occur <A> (a: A): Event<A>
+declare export function none <A> (): Event<A>
+declare export function occurred <A> (ea: Event<A>): boolean
 
 declare export function foldEvent <A, B> (b: B, f: (A) => B, e: Event<A>): B
 declare export function foldEvent <A, B> (b: B): (f: (A) => B, e: Event<A>) => B
