@@ -7,6 +7,7 @@ export * from './sf'
 
 export * from './session'
 export * from './input'
+export * from './run'
 
 declare export function split <A, B, C> (ab: SF<A, B>, ac: SF<A, C>): SF<[A, [B, C]]>
 
