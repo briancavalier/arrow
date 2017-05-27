@@ -1,38 +1,12 @@
 // @flow
-import { type Pair } from './pair'
 export * from './pair'
-
-import { type Event } from './event'
 export * from './event'
 
 import { type SF } from './sf'
 export * from './sf'
 
-// A session provides a sample of state that will be fed into
-// a signal function when events occur
-export type Session<A> = {
-  step: () => SessionStep<A>
-}
-
-export type SessionStep<A> = {
-  sample: A,
-  next: Session<A>
-}
-
-export type Input<A> = {
-  when: (f: InputHandler<A>) => void,
-  value: () => Event<A>
-}
-
-export type InputHandler<A> = (input: Input<A>) => void
-
-declare export function input <A> (): Input<A>
-
-declare export function eitherInput <A, B> (ia: Input<A>, ib: Input<B>): Input<Pair<Event<A>, Event<B>>>
-declare export function eitherInput <A, B> (ia: Input<A>): (ib: Input<B>) => Input<Pair<Event<A>, Event<B>>>
-
-declare export function countSession (delta: number): Session<number>
-declare export function clockSession (): Session<number>
+export * from './session'
+export * from './input'
 
 declare export function split <A, B, C> (ab: SF<A, B>, ac: SF<A, C>): SF<[A, [B, C]]>
 

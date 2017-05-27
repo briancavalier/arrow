@@ -1,0 +1,11 @@
+// @flow
+import { type SF } from './sf'
+import { type Session } from './session'
+import { type Input } from './input'
+
+export type Time = number
+
+declare export function run <A, B> (sf: SF<A, B>, input: Input<A>, session: Session<Time>): void
+declare export function run <A, B> (sf: SF<A, B>): (input: Input<A>, session: Session<Time>) => void
+declare export function run <A, B> (sf: SF<A, B>, input: Input<A>): (session: Session<Time>) => void
+declare export function run <A, B> (sf: SF<A, B>): (input: Input<A>) => (session: Session<Time>) => void
